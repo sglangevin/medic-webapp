@@ -774,6 +774,7 @@ require('moment/locales');
             return console.log('Error retrieving settings', err);
           }
           require('../modules/add-record').init(settings.muvuku_webapp_url);
+          require('../modules/add-record-enketo').init(settings.enketo_webapp_url);
         });
         require('../modules/manage-session').init();
       };

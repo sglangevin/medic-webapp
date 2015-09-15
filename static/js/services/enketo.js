@@ -30,7 +30,7 @@ angular.module('inboxServices').service('Enketo', [
       });
     };
 
-    var transformXml = function(formDocId, doc) {
+    var transformXml = function(doc, formDocId) {
       return Promise
         .all([
           XSLT.transform('openrosa2html5form.xsl', doc),
@@ -41,7 +41,9 @@ angular.module('inboxServices').service('Enketo', [
             html: $(results[0]),
             model: results[1]
           };
-          replaceJavarosaMediaWithLoaders(formDocId, result.html);
+          if(formDocId) {
+            replaceJavarosaMediaWithLoaders(formDocId, result.html);
+          }
           return Promise.resolve(result);
         });
     };
@@ -58,7 +60,7 @@ angular.module('inboxServices').service('Enketo', [
             .getAttachment(form.id, 'xml')
             .then(FileReader)
             .then(function(text) {
-              return transformXml(form.id, $.parseXML(text));
+              return transformXml($.parseXML(text), form.id);
             });
         });
     };
@@ -66,6 +68,29 @@ angular.module('inboxServices').service('Enketo', [
     this.render = function(wrapper, formInternalId, formInstanceData) {
       return withFormByFormInternalId(formInternalId)
         .then(function(doc) {
+          wrapper.find('.form-footer')
+                 .addClass('end')
+                 .find('.previous-page,.next-page')
+                 .addClass('disabled');
+          var formContainer = wrapper.find('.container').first();
+          formContainer.html(doc.html);
+          var form = new EnketoForm(wrapper.find('form').first(), {
+            modelStr: doc.model,
+            instanceStr: formInstanceData
+          });
+          var loadErrors = form.init();
+          if (loadErrors && loadErrors.length) {
+            return Promise.reject(loadErrors);
+          }
+          wrapper.show();
+          return Promise.resolve(form);
+        });
+    };
+
+    this.renderFromXml = function(wrapper, xmlString, formInstanceData) {
+      return transformXml($.parseXML(xmlString))
+        .then(function(doc) {
+          // TODO refactor with `.render()` when upstream changes have been merged
           wrapper.find('.form-footer')
                  .addClass('end')
                  .find('.previous-page,.next-page')
@@ -97,6 +122,7 @@ angular.module('inboxServices').service('Enketo', [
       }
       return fields;
     };
+    this.recordToJs = recordToJs;
 
     var getContact = function(id) {
       if (id) {

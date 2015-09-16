@@ -22,13 +22,6 @@ var modal = require('../modules/modal');
       };
 
       $scope.$root.loadXmlFrom = function(formInternalId, content) {
-        if(!content) {
-          if($state.includes('contacts')) {
-            content = '<data><g_patient_id>' +
-                $state.params.id + '</g_patient_id></data>';
-          }
-        }
-
         $('#create-report').modal('hide');
         loadForm(formInternalId, content);
         $('#edit-report').modal('show');
@@ -39,6 +32,14 @@ var modal = require('../modules/modal');
 
         Enketo.render(formWrapper, formInternalId, formInstanceData)
           .then(function(form) {
+            if(!formInstanceData) {
+              if($state.includes('contacts') && $state.params.id) {
+                var content = $('<' + form.getModel().getXML().children[0].children[0].children[0].nodeName + '>');
+                $('<g_patient_id>', { text: $state.params.id }).appendTo(content);
+                form.getModel().mergeXml(content[0].outerHTML);
+              }
+            }
+
             $scope.enketo_report = {
               formInternalId: formInternalId,
               docId: docId,

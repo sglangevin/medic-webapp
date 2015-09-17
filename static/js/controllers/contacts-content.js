@@ -34,6 +34,13 @@
         Promise.all([ getContact(id), getChildren(id), getContactFor(id) ])
           .then(function(results) {
             var doc = results[0];
+            doc.parents = [];
+            var parent = doc.parent;
+            while(parent && Object.keys(parent).length) {
+              console.log('Pushing parent: ' + JSON.stringify(parent));
+              doc.parents.push(parent);
+              parent = parent.parent;
+            }
             doc.children = results[1].rows;
             doc.contactFor = results[2].rows;
             var refreshing = ($scope.selected && $scope.selected._id) === id;

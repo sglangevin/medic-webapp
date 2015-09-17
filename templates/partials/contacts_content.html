@@ -19,30 +19,34 @@
       </div>
 
       <div class="body">
-        <h2>{{translateFor(selectedSchema().title, selected)}}</h2>
+        <h2>{{titleFor(selected)}}</h2>
         <h5>{{'contact.type.' + selected.type | translate}}</h5>
         <ul>
-          <li ng-repeat="(name, conf) in selectedSchema().fields">
+          <li ng-repeat="(name, conf) in selectedSchemaNormalFields()">
             <label>{{selected.type + '.field.' + name | translate}}</label>
             <p ng-switch="conf.type">
-              <span ng-switch-when="phone"><a href="tel:{{selected[name]}}">{{selected[name] | translate}}</a></span>
-              <span ng-switch-when="db"><a ng-click="select(selected[name])">{{selected[name][conf.title] | translate}}</a></span>
+              <span ng-switch-when="phone"><a href="tel:{{selected[name]}}">{{selected[name]}}</a></span>
+              <span ng-switch-when="db"><a ng-click="select(selected[name]._id)">{{titleFor(selected[name])}}</a></span>
+              <span ng-switch-when="custom"><a ng-click="select(selected[name]._id)">{{titleFor(selected[name])}}</a></span>
               <span ng-switch-default>{{selected[name]}}</span>
             </p>
+          </li>
+          <li ng-repeat="parent in selected.parents">
+            <label>{{'contact.type.' + parent.type | translate}}</label>
+            <p><a ng-click="select(parent._id)">{{titleFor(parent)}}</a></p>
           </li>
         </ul>
       </div>
 
       <div class="body" ng-if="selected.children.length">
-        <h2 ng-show="selected.type === 'district_hospital'">{{'Health Centers' | translate}}</h2>
-        <h2 ng-show="selected.type === 'health_center'">{{'Clinics' | translate}}</h2>
+        <h2>{{selected.type + '.field.children' | translate}}</h2>
         <ul>
           <li class="row" ng-repeat="child in selected.children">
             <div class="col-sm-4">
-              <a ng-click="select(child.doc._id)">{{child.doc.name}}</a>
+              <a ng-click="select(child.doc._id)">{{titleFor(child.doc)}}</a>
             </div>
             <div class="col-sm-4">
-              {{child.doc.contact.name}}
+              {{titleFor(child.doc.contact)}}
             </div>
             <div class="col-sm-4">
               {{child.doc.contact.phone}}
@@ -56,7 +60,7 @@
         <ul>
           <li class="row" ng-repeat="place in selected.contactFor">
             <div class="col-sm-4">
-              <a ng-click="select(place.doc._id)">{{place.doc.name}}</a>
+              <a ng-click="select(place.doc._id)">{{titleFor(place.doc)}}</a>
             </div>
             <div class="col-sm-8">
               {{place.doc.parent | clinic}}

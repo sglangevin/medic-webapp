@@ -1,10 +1,25 @@
-var _ = require('underscore');
+var _ = require('underscore'),
+    moment = require('moment');
 
 (function () {
 
   'use strict';
 
   var module = angular.module('inboxFilters');
+
+  var getAbsoluteDateString = function(date, options) {
+    if (options.withoutTime) {
+      return options.FormatDate.date(date);
+    }
+    return options.FormatDate.datetime(date);
+  };
+
+  var getRelativeDateString = function(date, options) {
+    if (options.age) {
+      return options.FormatDate.age(date);
+    }
+    return options.FormatDate.relative(date, options);
+  };
 
   var getRelativeDate = function(date, options) {
     options = options || {};
@@ -13,13 +28,8 @@ var _ = require('underscore');
       return '<span>' + options.prefix + options.suffix + '</span>';
     }
     date = moment(date);
-    var absolute = options.FormatDate.datetime(date);
-    var relative;
-    if (options.withoutTime && date.isSame(moment(), 'd')) {
-      relative = options.$translate.instant('today');
-    } else {
-      relative = options.FormatDate.relative(date);
-    }
+    var absolute = getAbsoluteDateString(date, options);
+    var relative = getRelativeDateString(date, options);
     return options.prefix +
            '<span class="relative-date" title="' + absolute + '">' +
              '<span class="relative-date-content">' + relative + '</span>' +
@@ -74,12 +84,23 @@ var _ = require('underscore');
         if (!task) {
           return '';
         }
-        var options = {
+        return getRelativeDate(getTaskDate(task), {
           FormatDate: FormatDate,
           prefix: getState(task.state || 'received', translateFilter) + '&nbsp;',
           suffix: getRecipient(task, translateFilter)
-        };
-        return getRelativeDate(getTaskDate(task), options);
+        });
+      };
+    }
+  ]);
+
+  module.filter('age', ['FormatDate',
+    function (FormatDate) {
+      return function (date) {
+        return getRelativeDate(date, {
+          FormatDate: FormatDate,
+          withoutTime: true,
+          age: true
+        });
       };
     }
   ]);
@@ -92,11 +113,10 @@ var _ = require('underscore');
     }
   ]);
 
-  module.filter('relativeDay', ['$translate', 'FormatDate',
-    function ($translate, FormatDate) {
+  module.filter('relativeDay', ['FormatDate',
+    function (FormatDate) {
       return function (date) {
         return getRelativeDate(date, {
-          $translate: $translate,
           FormatDate: FormatDate,
           withoutTime: true
         });

@@ -1,8 +1,33 @@
-require('lie/polyfill');
+window.PouchDB = require('pouchdb');
+window.$ = window.jQuery = require('jquery');
+window.d3 = require('d3');
+
+require('../../node_modules/select2/dist/js/select2.full');
+require('bootstrap');
+require('./bootstrap-multidropdown');
+require('bootstrap-daterangepicker');
+require('bootstrap-tour');
+require('nvd3');
+
+require('angular');
+require('angular-cookie');
+require('angular-route');
+require('angular-ui-router');
+require('angular-translate');
+require('angularjs-nvd3-directives');
+require('angular-pouchdb');
+require('angular-sanitize');
+require('angular-resource');
+
+require('moment');
+require('moment/locale/es');
+require('moment/locale/fr');
+require('moment/locale/ne');
 
 require('./services/index');
 require('./controllers/index');
 require('./filters/index');
+require('./enketo/main.js');
 
 var _ = require('underscore');
 _.templateSettings = {
@@ -22,7 +47,6 @@ _.templateSettings = {
     'inboxServices',
     'pascalprecht.translate',
     'nvd3ChartDirectives',
-    'ngFileUpload',
     'pouchdb'
   ]);
 
@@ -98,9 +122,36 @@ _.templateSettings = {
 
         // analytics
         .state('analytics', {
-          url: '/analytics/:module?tour',
+          url: '/analytics?tour',
           controller: 'AnalyticsCtrl',
           templateUrl: 'templates/partials/analytics.html'
+        })
+        .state('analytics.anc', {
+          url: '/anc',
+          views: {
+            content: {
+              controller: 'AnalyticsAncCtrl',
+              templateUrl: 'templates/partials/analytics/anc.html'
+            }
+          }
+        })
+        .state('analytics.stock', {
+          url: '/stock',
+          views: {
+            content: {
+              controller: 'AnalyticsStockCtrl',
+              templateUrl: 'templates/partials/analytics/stock.html'
+            }
+          }
+        })
+        .state('analytics.targets', {
+          url: '/targets',
+          views: {
+            content: {
+              controller: 'AnalyticsTargetsCtrl',
+              templateUrl: 'templates/partials/analytics/targets.html'
+            }
+          }
         })
 
         // contacts
@@ -203,6 +254,24 @@ _.templateSettings = {
             }
           }
         })
+        .state('configuration.targets', {
+          url: '/targets',
+          views: {
+            content: {
+              controller: 'ConfigurationTargetsCtrl',
+              templateUrl: 'templates/partials/configuration_targets.html'
+            }
+          }
+        })
+        .state('configuration.targets-edit', {
+          url: '/targets/edit/:id',
+          views: {
+            content: {
+              controller: 'ConfigurationTargetsEditCtrl',
+              templateUrl: 'templates/partials/configuration_targets_edit.html'
+            }
+          }
+        })
         .state('configuration.translation', {
           url: '/translation',
           views: {
@@ -247,6 +316,15 @@ _.templateSettings = {
             }
           }
         })
+        .state('configuration.user', {
+          url: '/user',
+          views: {
+            content: {
+              controller: 'ConfigurationUserCtrl',
+              templateUrl: 'templates/partials/configuration_user.html'
+            }
+          }
+        })
         .state('configuration.users', {
           url: '/users',
           views: {
@@ -274,45 +352,27 @@ _.templateSettings = {
             }
           }
         })
+        .state('configuration.permissions', {
+          url: '/permissions',
+          views: {
+            content: {
+              controller: 'ConfigurationPermissionsCtrl',
+              templateUrl: 'templates/partials/configuration_permissions.html'
+            }
+          }
+        })
 
-        // help
+        // about page
+        .state('about', {
+          url: '/about',
+          controller: 'AboutCtrl',
+          templateUrl: 'templates/partials/about.html'
+        })
+
         .state('help', {
-          url: '/help',
+          url: '/help/{page}',
           controller: 'HelpCtrl',
           templateUrl: 'templates/partials/help.html'
-        })
-        .state('help.search', {
-          url: '/search',
-          views: {
-            content: {
-              controller: 'HelpSearchCtrl',
-              templateUrl: 'templates/partials/help_search.html'
-            }
-          }
-        })
-        .state('help.validation', {
-          url: '/validation',
-          views: {
-            content: {
-              templateUrl: 'templates/partials/help_validation.html'
-            }
-          }
-        })
-        .state('help.messages', {
-          url: '/messages',
-          views: {
-            content: {
-              templateUrl: 'templates/partials/help_messages.html'
-            }
-          }
-        })
-        .state('help.export', {
-          url: '/export',
-          views: {
-            content: {
-              templateUrl: 'templates/partials/help_export.html'
-            }
-          }
         })
 
         // theme design testing page
@@ -324,20 +384,14 @@ _.templateSettings = {
 
       $urlRouterProvider.when('', '/home');
       $translateProvider.useLoader('SettingsLoader', {});
+      $translateProvider.useSanitizeValueStrategy('escape');
       $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|ftp|mailto|tel|sms|file|blob):/);
     }
   ]);
 
-  app.factory('SettingsLoader', ['$q', 'Settings', function ($q, Settings) {
+  app.factory('SettingsLoader', ['Settings', function (Settings) {
     return function (options) {
-
-      var deferred = $q.defer();
-
-      Settings(function(err, res) {
-        if (err) {
-          return deferred.reject(err);
-        }
-
+      return Settings().then(function(res) {
         options.key = options.key || res.locale || 'en';
 
         var test = false;
@@ -362,12 +416,28 @@ _.templateSettings = {
             data[key] = value;
           });
         }
-        deferred.resolve(data);
+        return data;
       });
-      
-      return deferred.promise;
     };
   }]);
+
+  var getUsername = function() {
+    var userCtx;
+    _.forEach(document.cookie.split(';'), function(c) {
+      c = c.trim().split('=', 2);
+      if (c[0] === 'userCtx') {
+        userCtx = c[1];
+      }
+    });
+    if (!userCtx) {
+      return;
+    }
+    try {
+      return JSON.parse(unescape(decodeURI(userCtx))).name;
+    } catch(e) {
+      return;
+    }
+  };
 
   var getDbNames = function() {
     // parse the URL to determine the remote and local database names
@@ -376,14 +446,17 @@ _.templateSettings = {
     var hostLocation = url.indexOf('/', protocolLocation) + 1;
     var dbNameLocation = url.indexOf('/', hostLocation);
     return {
-      remote: url.slice(0, dbNameLocation),
-      local: url.slice(hostLocation, dbNameLocation)
+      remoteUrl: url.slice(0, dbNameLocation),
+      remoteDbName: url.slice(hostLocation, dbNameLocation),
+      local: url.slice(hostLocation, dbNameLocation) + '-user-' + getUsername()
     };
   };
 
   // Protractor waits for requests to complete so we have to disable
   // long polling requests.
   app.constant('E2ETESTING', window.location.href.indexOf('e2eTesting=true') !== -1);
+  app.constant('CONTACT_TYPES', [ 'district_hospital', 'health_center', 'clinic', 'person' ]);
+  app.constant('PLACE_TYPES', [ 'district_hospital', 'health_center', 'clinic' ]);
 
   var bootstrapApplication = function() {
     app.constant('APP_CONFIG', {
@@ -402,7 +475,7 @@ _.templateSettings = {
       // ddoc found - bootstrap immediately
       bootstrapApplication();
     }).catch(function() {
-      window.PouchDB(names.remote)
+      window.PouchDB(names.remoteUrl)
         .get('_design/medic')
         .then(function(ddoc) {
           var minimal = _.pick(ddoc, '_id', 'app_settings', 'views');
@@ -412,8 +485,14 @@ _.templateSettings = {
         })
         .then(bootstrapApplication)
         .catch(function(err) {
-          $('.bootstrap-layer').html('<div>Loading error. Check your connection and try again.</div>');
-          console.error('Error fetching ddoc from remote server', err);
+          if (err.status === 401) {
+            console.warn('User must reauthenticate');
+            window.location.href = '/' + getDbNames().remoteDbName + '/login' +
+            '?redirect=' + encodeURIComponent(window.location.href);
+          } else {
+            $('.bootstrap-layer').html('<div><p>Loading error, please check your connection.</p><a class="btn btn-primary" href="#" onclick="window.location.reload(false);">Try again</a></div>');
+            console.error('Error fetching ddoc from remote server', err);
+          }
         });
     });
 

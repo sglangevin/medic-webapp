@@ -118,8 +118,8 @@
         </span>
       </span>
       
-      <span class="filter input-group freetext-filter" ng-show="filterModel.type === 'reports' || filterModel.type === 'contacts'">
-        <input id="freetext" class="form-control" type="text" ng-model="filterQuery.value" ng-attr-placeholder="{{'Extra search words' | translate}}">
+      <span class="filter input-group freetext-filter" ng-show="filterModel.type === 'reports' || filterModel.type === 'contacts'" ng-class="{'only-filter': filterModel.type === 'contacts' && !facilities.length}">
+        <input id="freetext" class="form-control" type="text" ng-model="filterQuery.value" ng-attr-placeholder="{{'freetext.search' | translate}}">
         <span class="input-group-btn">
           <button id="search" class="btn btn-default" type="button">
             <span class="fa fa-search"></span>
@@ -127,7 +127,7 @@
         </span>
       </span>
 
-      <span class="filter dropdown mobile-freetext-filter" ng-show="filterModel.type === 'reports' || filterModel.type === 'contacts'">
+      <span class="filter dropdown mobile-freetext-filter" ng-show="filterModel.type === 'reports' || (filterModel.type === 'contacts' && facilities.length)">
         <span id="mobile-search" class="mm-button" data-toggle="dropdown">
           <span class="mm-button-icon">
             <span class="fa fa-search"></span>
@@ -138,7 +138,7 @@
         </span>
         <div class="search-pane dropdown-menu mm-dropdown-menu" role="menu" aria-labelledby="mobile-search">
           <span class="input-group">
-            <input id="mobile-freetext" class="form-control" type="text" ng-model="filterQuery.value" ng-attr-placeholder="{{'Extra search words' | translate}}">
+            <input id="mobile-freetext" class="form-control" type="text" ng-model="filterQuery.value" ng-attr-placeholder="{{'freetext.search' | translate}}">
             <span class="input-group-btn">
               <button id="mobile-search-go" class="btn btn-default" type="button">
                 <span class="fa fa-search"></span>
@@ -148,7 +148,7 @@
         </div>
       </span>
 
-      <span class="filter dropdown mm-dropdown analytics-module" ng-show="filterModel.type === 'analytics' && analyticsModules.length">
+      <span class="filter dropdown mm-dropdown analytics-module" ng-show="filterModel.type === 'analytics' && analyticsModules.length > 1">
         <span id="module" class="mm-button" data-toggle="dropdown">
           <span class="mm-button-icon">
             <span class="fa fa-bar-chart-o"></span>
@@ -156,13 +156,13 @@
           <span class="mm-button-dropdown">
             <span class="fa fa-chevron-down"></span>
           </span>
-          <span class="mm-button-text">
-            {{filterModel.module.label | translate}}
+          <span class="mm-button-text" ng-repeat="module in analyticsModules" ng-if="module.state | isState">
+            {{module.label | translate}}
           </span>
         </span>
         <ul role="menu" aria-labelledby="module" class="dropdown-menu mm-dropdown-menu">
           <li role="presentation" ng-repeat="module in analyticsModules">
-            <a href="#/analytics/{{module.id}}" role="menuitem" tabindex="-1">{{module.label | translate}}</a>
+            <a ui-sref="{{module.state}}" role="menuitem" tabindex="-1">{{module.label | translate}}</a>
           </li>
         </ul>
       </span>
@@ -178,102 +178,37 @@
           <span class="mm-button-icon" ng-show="'configuration' | isState">
             <i class="fa fa-cog"></i>
           </span>
-          <span class="mm-button-icon" ng-show="'configuration.settings' | includedByState">
-            <i class="fa fa-cog"></i>
-          </span>
-          <span class="mm-button-icon" ng-show="'configuration.translation' | includedByState">
-            <i class="fa fa-language"></i>
-          </span>
-          <span class="mm-button-icon" ng-show="'configuration.forms' | isState">
-            <i class="fa fa-list-alt"></i>
-          </span>
-          <span class="mm-button-icon" ng-show="'configuration.export' | isState">
-            <i class="fa fa-arrow-circle-o-down"></i>
-          </span>
-          <span class="mm-button-icon" ng-show="'configuration.users' | isState">
-            <i class="fa fa-user"></i>
-          </span>
-          <span class="mm-button-icon" ng-show="'configuration.icons' | isState">
-            <i class="fa fa-file-image-o"></i>
+          <span class="mm-button-icon" ng-show="page.active()" ng-repeat="page in configurationPages">
+            <i class="fa {{page.icon}}"></i>
           </span>
           <span class="mm-button-dropdown">
             <i class="fa fa-chevron-down"></i>
           </span>
           <span class="mm-button-text">
-            <span ng-show="'configuration' | isState">
-              {{'Configuration' | translate}}
-            </span>
-            <span ng-show="'configuration.settings' | includedByState">
-              {{'Settings' | translate}}
-            </span>
-            <span ng-show="'configuration.translation' | includedByState">
-              {{'Languages' | translate}}
-            </span>
-            <span ng-show="'configuration.forms' | isState">
-              {{'Forms' | translate}}
-            </span>
-            <span ng-show="'configuration.export' | isState">
-              {{'Export' | translate}}
-            </span>
-            <span ng-show="'configuration.users' | isState">
-              {{'Users' | translate}}
-            </span>
-            <span ng-show="'configuration.icons' | isState">
-              {{'icons' | translate}}
-            </span>
+            <span ng-show="'configuration' | isState" translate>Configuration</span>
+            <span ng-show="page.active()" ng-repeat="page in configurationPages" translate>{{page.name}}</span>
           </span>
         </span>
         <ul role="menu" aria-labelledby="report" class="dropdown-menu mm-dropdown-menu">
-          <li class="ng-scope" role="presentation" mm-auth="can_configure">
-            <a ui-sref="configuration.settings.basic" role="menuitem" tabindex="-1">
-              <i class="fa fa-fw fa-cog"></i>
-              <span>{{'Settings' | translate}}</span>
-            </a>
-          </li>
-          <li class="ng-scope" role="presentation" mm-auth="can_configure">
-            <a ui-sref="configuration.translation.languages" role="menuitem" tabindex="-1">
-              <i class="fa fa-fw fa-language"></i>
-              <span>{{'Languages' | translate}}</span>
-            </a>
-          </li>
-          <li class="ng-scope" role="presentation" mm-auth="can_configure">
-            <a ui-sref="configuration.forms" role="menuitem" tabindex="-1">
-              <i class="fa fa-fw fa-list-alt"></i>
-              <span>{{'Forms' | translate}}</span>
-            </a>
-          </li>
-          <li class="ng-scope" role="presentation" mm-auth="can_configure">
-            <a href="{{baseUrl}}/schedules" role="menuitem" tabindex="-1">
-              <i class="fa fa-fw fa-clock-o"></i>
-              <span>{{'Schedules' | translate}}</span>
-            </a>
-          </li>
-          <li class="ng-scope" role="presentation" mm-auth="can_configure">
-            <a ui-sref="configuration.export" role="menuitem" tabindex="-1">
-              <i class="fa fa-fw fa-arrow-circle-o-down"></i>
-              <span>{{'Export' | translate}}</span>
-            </a>
-          </li>
-          <li class="ng-scope" role="presentation" mm-auth="can_configure">
-            <a ui-sref="configuration.users" role="menuitem" tabindex="-1">
-              <i class="fa fa-fw fa-user"></i>
-              <span>{{'Users' | translate}}</span>
-            </a>
-          </li>
-          <li class="ng-scope" role="presentation" mm-auth="can_configure">
-            <a ui-sref="configuration.icons" role="menuitem" tabindex="-1">
-              <i class="fa fa-fw fa-file-image-o"></i>
-              <span>{{'icons' | translate}}</span>
+          <li class="ng-scope" role="presentation" mm-auth="can_configure" ng-repeat="page in configurationPages">
+            <a ui-sref="{{page.state}}" role="menuitem" tabindex="-1">
+              <i class="fa fa-fw {{page.icon}}"></i>
+              <span translate>{{page.name}}</span>
             </a>
           </li>
         </ul>
       </span>
     </div>
 
-    <div class="right-pane">
-      <span class="slide-back" ng-click="back()" ng-show="filterModel.type === 'reports' || filterModel.type === 'messages' || filterModel.type === 'contacts' || filterModel.type === 'tasks'">
-        <a id="back">
-          <span class="fa fa-chevron-left" title="{{'Back' | translate}}"></span>
+    <div class="right-pane navigation">
+      <span ng-show="cancelCallback" class="filter-bar-back">
+        <a ng-click="cancel()">
+          <span class="fa fa-times" title="{{'Back' | translate}}"></span>
+        </a>
+      </span>
+      <span ng-hide="cancelCallback" class="filter-bar-back">
+        <a ng-click="closeContentPane()">
+          <span class="fa fa-chevron-left" title="{{'Close' | translate}}"></span>
         </a>
       </span>
       <h2>{{title}}</h2>

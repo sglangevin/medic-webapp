@@ -29,7 +29,7 @@ var _ = require('underscore'),
     function(DB, UserSettings, Session) {
       return function(callback) {
         var userCtx = Session.userCtx();
-        if (!userCtx.name) {
+        if (!userCtx || !userCtx.name) {
           return callback(new Error('Not logged in'));
         }
         if (utils.isUserAdmin(userCtx)) {
@@ -66,22 +66,38 @@ var _ = require('underscore'),
     }
   ]);
 
-  inboxServices.factory('Admins', ['HttpWrapper',
-    function(HttpWrapper) {
-      return function(callback) {
-        HttpWrapper.get('/_config/admins', { cache: true })
-          .success(function(data) {
-            callback(null, data);
-          })
-          .error(function(data) {
-            callback(new Error(data));
+  inboxServices.factory('UserContact', ['$q', 'DB', 'UserSettings',
+    function($q, DB, UserSettings) {
+      return function() {
+        return $q(function(resolve, reject) {
+          UserSettings(function(err, user) {
+            if (err) {
+              return reject(err);
+            }
+            if (!user.contact_id) {
+              return resolve();
+            }
+            DB.get().get(user.contact_id).then(resolve).catch(reject);
           });
+        });
       };
     }
   ]);
 
-  inboxServices.factory('Users', ['HttpWrapper', 'Facility', 'Admins', 'DbView',
-    function(HttpWrapper, Facility, Admins, DbView) {
+  inboxServices.factory('Admins', ['$http',
+    function($http) {
+      return function(callback) {
+        $http.get('/_config/admins', { cache: true })
+          .success(function(data) {
+            callback(null, data);
+          })
+          .error(callback);
+      };
+    }
+  ]);
+
+  inboxServices.factory('Users', ['$http', 'Facility', 'Admins', 'DbView',
+    function($http, Facility, Admins, DbView) {
 
       var getType = function(user, admins) {
         if (user.doc.roles && user.doc.roles.length) {
@@ -120,7 +136,7 @@ var _ = require('underscore'),
       };
 
       var getAllUsers = function(callback) {
-        HttpWrapper
+        $http
           .get('/_users/_all_docs', { cache: true, params: { include_docs: true } })
           .success(function(data) {
             callback(null, data);
@@ -129,11 +145,12 @@ var _ = require('underscore'),
       };
 
       var getAllUserSettings = function(callback) {
-        DbView(
-          'doc_by_type',
-          { params: { include_docs: true, key: ['user-settings'] } },
-          callback
-        );
+        var options = { params: { include_docs: true, key: ['user-settings'] } };
+        DbView('doc_by_type', options)
+          .then(function(data) {
+            callback(null, data.results);
+          })
+          .catch(callback);
       };
 
       return function(callback) {
@@ -161,8 +178,8 @@ var _ = require('underscore'),
     cache.remove('/_config/admins');
   };
 
-  inboxServices.factory('UpdateUser', ['$log', '$cacheFactory', 'HttpWrapper', 'DB', 'Admins',
-    function($log, $cacheFactory, HttpWrapper, DB, Admins) {
+  inboxServices.factory('UpdateUser', ['$log', '$cacheFactory', '$http', 'DB', 'Admins',
+    function($log, $cacheFactory, $http, DB, Admins) {
 
       var createId = function(name) {
         return 'org.couchdb.user:' + name;
@@ -170,7 +187,7 @@ var _ = require('underscore'),
 
       var getOrCreateUser = function(id, name, callback) {
         if (id) {
-          HttpWrapper.get(getUserUrl(id), { cache: true, targetScope: 'root' })
+          $http.get(getUserUrl(id), { cache: true, targetScope: 'root' })
             .success(function(data) {
               callback(null, data);
             })
@@ -206,13 +223,17 @@ var _ = require('underscore'),
         }
         Admins(function(err, admins) {
           if (err) {
+            if (err.error === 'unauthorized') {
+              // not an admin
+              return callback();
+            }
             return callback(err);
           }
           if (!admins[updated.name]) {
             // not an admin so admin password change not required
             return callback();
           }
-          HttpWrapper.put('/_config/admins/' + updated.name, '"' + updated.password + '"')
+          $http.put('/_config/admins/' + updated.name, '"' + updated.password + '"')
             .success(function() {
               callback();
             })
@@ -231,14 +252,13 @@ var _ = require('underscore'),
           if (err) {
             return callback(err);
           }
-          $log.debug('user being updated', user);
-          $log.debug('updates', updates);
+          $log.debug('user being updated', user._id);
           var updated = _.extend(user, updates);
           if (updated.password) {
             updated.derived_key = undefined;
             updated.salt = undefined;
           }
-          HttpWrapper
+          $http
             .put(getUserUrl(user._id), updated)
             .success(function() {
               updatePassword(updated, function(err) {
@@ -246,9 +266,7 @@ var _ = require('underscore'),
                 callback(err, updated);
               });
             })
-            .error(function(data) {
-              callback(new Error(data));
-            });
+            .error(callback);
         });
       };
 
@@ -289,15 +307,15 @@ var _ = require('underscore'),
     }
   ]);
 
-  inboxServices.factory('DeleteUser', ['$cacheFactory', 'HttpWrapper', 'DeleteDoc',
-    function($cacheFactory, HttpWrapper, DeleteDoc) {
+  inboxServices.factory('DeleteUser', ['$cacheFactory', '$http', 'DeleteDoc',
+    function($cacheFactory, $http, DeleteDoc) {
 
       var deleteUser = function(id, callback) {
         var url = getUserUrl(id);
-        HttpWrapper.get(url)
+        $http.get(url)
           .success(function(user) {
             user._deleted = true;
-            HttpWrapper.put(url, user)
+            $http.put(url, user)
               .success(function() {
                 callback();
               })

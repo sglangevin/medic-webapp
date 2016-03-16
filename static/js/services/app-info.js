@@ -1,4 +1,5 @@
-var _ = require('underscore');
+var _ = require('underscore'),
+    moment = require('moment');
 
 (function () {
 
@@ -8,22 +9,17 @@ var _ = require('underscore');
   
   var settings;
 
-  inboxServices.factory('AppInfo', ['$q', 'Settings',
-    function($q, Settings) {
+  inboxServices.factory('AppInfo', ['Settings',
+    function(Settings) {
       return function() {
-        return $q(function(resolve, reject) {
-          Settings(function(err, res) {
-            if (err) {
-              return reject(err);
-            }
-            settings = res;
-            resolve({
-              getForm: getForm,
-              getMessage: getMessage,
-              translate: translate,
-              formatDate: formatDate
-            });
-          });
+        return Settings().then(function(res) {
+          settings = res;
+          return {
+            getForm: getForm,
+            getMessage: getMessage,
+            translate: translate,
+            formatDate: formatDate
+          };
         });
       };
     }

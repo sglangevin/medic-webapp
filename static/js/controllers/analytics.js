@@ -6,40 +6,34 @@ var _ = require('underscore');
 
   var inboxControllers = angular.module('inboxControllers');
 
-  var findSelectedModule = function(id, modules) {
-    if (!modules.length) {
-      return undefined;
-    }
-    if (!id) {
-      return modules[0];
-    }
-    return _.findWhere(modules, { id: id });
-  };
-
   inboxControllers.controller('AnalyticsCtrl',
-    ['$scope', '$rootScope', '$state', '$stateParams', 'Settings', 'AnalyticsModules',
-    function ($scope, $rootScope, $state, $stateParams, Settings, AnalyticsModules) {
+    ['$scope', '$rootScope', '$state', '$stateParams',
+    function ($scope, $rootScope, $state, $stateParams) {
       $scope.setSelectedModule();
       $scope.clearSelected();
       $scope.filterModel.type = 'analytics';
       $scope.loading = true;
-      Settings(function(err, res) {
-        if (err) {
-          return console.log('Error fetching settings', err);
-        }
-        $scope.setAnalyticsModules(AnalyticsModules(res));
-        $scope.setSelectedModule(findSelectedModule(
-          $stateParams.module, $scope.analyticsModules
-        ));
+      $scope.fetchAnalyticsModules().then(function(modules) {
         $scope.loading = false;
-        if ($scope.filterModel.module) {
-          $scope.filterModel.module.render($scope);
+        $scope.setSelectedModule(findSelectedModule(modules));
+        if ($stateParams.tour) {
+          $rootScope.$broadcast('TourStart', $stateParams.tour);
+        }
+        if (modules.length === 1) {
+          $state.go(modules[0].state);
         }
       });
 
-      if ($stateParams.tour) {
-        $rootScope.$broadcast('TourStart', $stateParams.tour);
-      }
+      var findSelectedModule = function( modules) {
+        if (!modules.length) {
+          return undefined;
+        }
+        var module = _.findWhere(modules, { state: $state.current.name });
+        if (!module) {
+          module = modules[0];
+        }
+        return module;
+      };
 
       $scope.loadPatient = function(id) {
         $state.go('reports.detail', { query: 'patient_id:' + id });

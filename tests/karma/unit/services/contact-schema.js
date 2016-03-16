@@ -4,28 +4,6 @@ describe('ContactSchema service', function() {
   var service,
       assert = chai.assert;
 
-  var sortedJson = function(o) {
-    var keys = Object.keys(o).sort();
-    var s = '{';
-    for(var i=0; i<keys.length; ++i) {
-      var k = keys[i];
-      s += '"' + k + '":' + JSON.stringify(o[k]) + ',';
-    }
-    // N.B. not valid JSON, as an extra comma will appear
-    return s + '}';
-  };
-
-  var deepEqual = assert.deepEqual;
-  assert.deepEqual = function() {
-    try {
-      deepEqual.apply(this, arguments);
-    } catch(e) {
-      throw new Error(e +
-          '\nA: ' + sortedJson(arguments[0]) +
-          '\nB: ' + sortedJson(arguments[1]));
-    }
-  };
-
   beforeEach(function() {
     module('inboxApp');
     inject(function(_ContactSchema_) {
@@ -184,25 +162,17 @@ describe('ContactSchema service', function() {
         assert.deepEqual(service.get().person, {
           type: 'person',
           badge: 'fa-user',
-          name: '{{first_name}} {{last_name}}',
           fields: {
-            first_name: {
+            name: {
               type: 'string',
               required: true,
             },
-            last_name: {
-              type: 'string',
-              required: true,
+            date_of_birth: {
+              type: 'date',
             },
             phone: {
               type: 'tel',
               required: true,
-            },
-            national_id_number: {
-              type: 'string',
-            },
-            date_of_birth: {
-              type: 'date',
             },
             alternate_phone: {
               type: 'tel',
@@ -279,8 +249,8 @@ describe('ContactSchema service', function() {
       it('has a simple default', function() {
         assert.deepEqual(service.get().clinic, {
           type: 'clinic',
-          badge: 'fa-home',
-          icon: 'fa-home',
+          badge: 'fa-group',
+          icon: 'fa-group',
           fields: {
             name: {
               type: 'string',
@@ -328,6 +298,8 @@ describe('ContactSchema service', function() {
       assert.notOk(service.getVisibleFields().clinic.fields.hasOwnProperty('name'));
     });
 
+    /*
+     * Test disabled while the default Schema's `Person` has a standard `name` field.
     it('should not include fields listed in calculated `name` field', function() {
       // expect
       assert.ok   (service.get()             .person.fields.hasOwnProperty('first_name'));
@@ -336,6 +308,7 @@ describe('ContactSchema service', function() {
 
       assert.notOk(service.getVisibleFields().person.fields.hasOwnProperty('last_name'));
     });
+    */
 
     it('should not include fields marked `hide_in_view`', function() {
       // expect

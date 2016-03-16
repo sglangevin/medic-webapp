@@ -5,8 +5,8 @@
   var inboxControllers = angular.module('inboxControllers');
 
   inboxControllers.controller('TasksContentCtrl',
-    ['$scope', '$state', '$log', '$stateParams', 'Enketo', 'DB', 'TranslateFrom',
-    function ($scope, $state, $log, $stateParams, Enketo, DB, TranslateFrom) {
+    ['$log', '$scope', '$state', '$translate', 'DB', 'Enketo', 'TranslateFrom', 'Snackbar',
+    function ($log, $scope, $state, $translate, DB, Enketo, TranslateFrom, Snackbar) {
 
       var hasOneFormAndNoFields = function(task) {
         return Boolean(
@@ -22,7 +22,18 @@
         );
       };
 
-      $scope.performAction = function(action) {
+      $scope.performAction = function(action, skipDetails) {
+        $scope.setCancelTarget(function() {
+          if (skipDetails) {
+            $state.go('tasks.detail', { id: null });
+          } else {
+            Enketo.unload($scope.form);
+            $scope.form = null;
+            $scope.loadingForm = false;
+            $scope.contentError = false;
+            $scope.clearCancelTarget();
+          }
+        });
         $scope.contentError = false;
         if (action.type === 'report') {
           $scope.loadingForm = true;
@@ -45,6 +56,8 @@
               $scope.loadingForm = false;
               $log.error('Error loading form.', err);
             });
+        } else if (action.type === 'contact') {
+          $state.go('contacts.addChild', action.content);
         }
       };
 
@@ -53,8 +66,12 @@
         Enketo.save($scope.formId, $scope.form)
           .then(function(doc) {
             $log.debug('saved report', doc);
+            $translate('report.created').then(Snackbar);
             $scope.saving = false;
-            $state.go('tasks', null, { reload: true });
+            Enketo.unload($scope.form);
+            $scope.clearSelected();
+            $scope.clearCancelTarget();
+            $state.go('tasks.detail', { id: null });
           })
           .catch(function(err) {
             $scope.saving = false;
@@ -66,13 +83,17 @@
         Enketo.unload($scope.form);
       });
 
+      // Wait for `selected` to be set during tasks generation and load the
+      // form if we have no other description or instructions in the task.
+      $scope.$watch('selected', function() {
+        if (hasOneFormAndNoFields($scope.selected)) {
+          $scope.performAction($scope.selected.actions[0], true);
+        }
+      });
+
       $scope.form = null;
       $scope.formId = null;
-      $scope.setSelected($stateParams.id);
-      if (hasOneFormAndNoFields($scope.selected)) {
-        $scope.performAction($scope.selected.actions[0]);
-      }
-
+      $scope.setSelected($state.params.id);
     }
   ]);
 

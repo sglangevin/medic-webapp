@@ -1,15 +1,28 @@
+var _ = require('underscore');
+
 (function () {
 
   'use strict';
 
   var inboxControllers = angular.module('inboxControllers');
   inboxControllers.controller('ContactsEditCtrl', [
-    '$log', '$scope', '$state', '$q', '$translate', 'ContactForm', 'ContactSchema', 'DB', 'Enketo', 'EnketoTranslation', 'UserDistrict',
-    function ($log, $scope, $state, $q, $translate, ContactForm, ContactSchema, DB, Enketo, EnketoTranslation, UserDistrict) {
+    '$log', '$scope', '$state', '$q', '$translate', 'ContactForm', 'ContactSchema', 'DB', 'Enketo', 'EnketoTranslation', 'UserDistrict', 'Snackbar',
+    function ($log, $scope, $state, $q, $translate, ContactForm, ContactSchema, DB, Enketo, EnketoTranslation, UserDistrict, Snackbar) {
+
+      DB = DB.get();
 
       $scope.loadingContent = true;
       $scope.loadingTypes = true;
       $scope.setShowContent(true);
+      $scope.setCancelTarget(function() {
+        $state.go('contacts.detail', { id: $state.params.id || $state.params.parent_id });
+      });
+
+      $scope.$on('$destroy', function() {
+        if ($scope.enketo_contact && $scope.enketo_contact.formInstance) {
+          Enketo.unload($scope.enketo_contact.formInstance);
+        }
+      });
 
       var getVisibleLevel = function() {
         return $q(function(resolve, reject) {
@@ -20,7 +33,7 @@
             if (!facility_id) {
               return resolve();
             }
-            DB.get().get(facility_id)
+            DB.get(facility_id)
               .then(function(doc) {
                 resolve(doc.type);
               })
@@ -70,6 +83,11 @@
               docId: type === $scope.contact.type? $scope.contactId: null,
             };
             $scope.loadingContent = false;
+          })
+          .catch(function(err) {
+            $scope.loadingContent = false;
+            $scope.contentError = true;
+            $log.error('Error loading contact form.', err);
           });
       };
 
@@ -86,13 +104,14 @@
         if (!$scope.contact || !$scope.contact.type) {
           return null;
         }
-        var fields = Object.keys($scope.unmodifiedSchema[$scope.contact.type].fields);
-        return EnketoTranslation.jsToFormInstanceData($scope.contact, fields);
+        var result = {};
+        result[$scope.contact.type] = $scope.contact;
+        return result;
       };
 
       var getContact = function() {
         if ($state.params.id) {
-          return DB.get().get($state.params.id);
+          return DB.get($state.params.id);
         }
         return $q.resolve();
       };
@@ -169,119 +188,167 @@
       $scope.save = function() {
         var form = $scope.enketo_contact.formInstance;
         var docId = $scope.enketo_contact.docId;
+        $scope.saving = true;
+        $scope.savingError = null;
 
         return form.validate()
           .then(function(valid) {
             if(!valid) {
-              // validation messages will be displayed for individual fields.
-              // That's all we want, really.
-              return;
+              throw new Error('Validation failed.');
             }
 
-            return $q.resolve()
-              .then(function() {
-                if(docId) {
-                  return DB.get().get(docId);
-                }
-                return null;
-              })
-              .then(function(original) {
-                var submitted = EnketoTranslation.recordToJs(form.getDataStr());
-                var extras;
-                if(_.isArray(submitted)) {
-                  extras = submitted[1];
-                  submitted = submitted[0];
-                } else {
-                  extras = {};
-                }
-                if(original) {
-                  submitted = $.extend({}, original, submitted);
-                } else {
-                  submitted.type = $scope.enketo_contact.type;
-                }
-
-                return saveDoc(submitted, original, extras);
-              })
+            return save(form, docId)
               .then(function(doc) {
                 $log.debug('saved report', doc);
                 $scope.saving = false;
+                $translate(docId ? 'contact.updated' : 'contact.created').then(Snackbar);
                 $state.go('contacts.detail', { id: doc._id });
               })
               .catch(function(err) {
                 $scope.saving = false;
-                $log.error('Error submitting form data: ', err);
+                $log.error('Error submitting form data', err);
+                $translate('Error updating contact').then(function(msg) {
+                  $scope.savingError = msg;
+                });
               });
-            });
+          })
+          .catch(function() {
+            // validation messages will be displayed for individual fields.
+            // That's all we want, really.
+            $scope.saving = false;
+            $scope.$apply();
+          });
       };
 
-      function saveDoc(doc, original, extras) {
-        var children = [];
+      function save(form, docId) {
         return $q.resolve()
           .then(function() {
-            var schema = $scope.unmodifiedSchema[doc.type];
-
-            // sequentially update all dirty db fields
-            var result = $q.resolve(doc);
-            _.each(schema.fields, function(conf, f) {
-              var customType = conf.type.match(/^(db|custom):(.*)$/);
-              if (customType) {
-                result = result.then(function(doc) {
-                  if(!doc[f]) {
-                    doc[f] = {};
-                  } else if(doc[f] === 'NEW') {
-                    var extra = extras[f];
-                    extra.type = customType[2];
-                    extra.reported_date = Date.now();
-
-                    var isChild = extra.parent === 'PARENT';
-                    if(isChild) {
-                      delete extra.parent;
-                    }
-
-                    updateTitle(extra);
-                    return DB.get().post(extra)
-                      .then(function(response) {
-                        return DB.get().get(response.id);
-                      })
-                      .then(function(newlySavedDoc) {
-                        doc[f] = newlySavedDoc;
-                        if(isChild) {
-                          children.push(newlySavedDoc);
-                        }
-                        return doc;
-                      });
-                  } else if(original && original[f] && doc[f] === original[f]._id) {
-                    doc[f] = original[f];
-                  } else {
-                    return DB.get().get(doc[f])
-                      .then(function(dbFieldValue) {
-                        doc[f] = dbFieldValue;
-                        return doc;
-                      });
-                  }
-                  return doc;
-                });
-              }
-            });
-            return result;
-          })
-          .then(function(doc) {
-            updateTitle(doc);
-            if(doc._id) {
-              return DB.get().put(doc);
-            } else {
-              doc.reported_date = Date.now();
-              return DB.get().post(doc);
+            if(docId) {
+              return DB.get(docId);
             }
+            return null;
           })
+          .then(function(original) {
+            var submitted = EnketoTranslation.contactRecordToJs(form.getDataStr());
+
+            var repeated = submitted[2];
+            var extras = submitted[1];
+            submitted = submitted[0];
+
+            if(original) {
+              submitted = $.extend({}, original, submitted);
+            } else {
+              submitted.type = $scope.enketo_contact.type;
+            }
+
+            return saveDoc(submitted, original, extras, repeated);
+          });
+      }
+
+      function persist(doc) {
+        updateTitle(doc);
+
+        var put;
+        if(doc._id) {
+          put = DB.put(doc);
+        } else {
+          doc.reported_date = Date.now();
+          put = DB.post(doc);
+        }
+        return put
+          .then(function(response) {
+            return DB.get(response.id);
+          });
+      }
+
+      function saveRepeated(repeated) {
+        if (!(repeated && repeated.child_data)) {
+          return $q.resolve();
+        }
+
+        var children = [];
+        return $q
+          .all(_.map(repeated.child_data, function(child) {
+            return persist(child)
+              .then(function(savedChild) {
+                children.push(savedChild);
+              });
+          }))
+          .then(function() {
+            return children;
+          });
+      }
+
+      function saveExtras(doc, original, extras) {
+        var children = [];
+        var schema = $scope.unmodifiedSchema[doc.type];
+
+        // sequentially update all dirty db fields
+        var result = $q.resolve(doc);
+        _.each(schema.fields, function(conf, f) {
+          var customType = conf.type.match(/^(db|custom):(.*)$/);
+          if (customType) {
+            result = result.then(function(doc) {
+              if(!doc[f]) {
+                doc[f] = {};
+              } else if(doc[f] === 'NEW') {
+                var extra = extras[f];
+                extra.type = customType[2];
+                extra.reported_date = Date.now();
+
+                var isChild = extra.parent === 'PARENT';
+                if(isChild) {
+                  delete extra.parent;
+                }
+
+                return persist(extra)
+                  .then(function(newlySavedDoc) {
+                    doc[f] = newlySavedDoc;
+                    if(isChild) {
+                      children.push(newlySavedDoc);
+                    }
+                    return doc;
+                  });
+              } else if(original && original[f] && doc[f] === original[f]._id) {
+                doc[f] = original[f];
+              } else {
+                var docId = doc[f];
+                if (typeof docId === 'object') {
+                  docId = doc[f]._id;
+                }
+                return DB.get(doc[f])
+                  .then(function(dbFieldValue) {
+                    doc[f] = dbFieldValue;
+                    return doc;
+                  });
+              }
+              return doc;
+            });
+          }
+        });
+        return result
           .then(function(doc) {
-            return DB.get().get(doc.id);
+            return { doc: doc, children: children };
+          });
+      }
+
+      function saveDoc(doc, original, extras, repeated) {
+        var children;
+        return saveRepeated(repeated)
+          .then(function(repeatedChildren) {
+            children = repeatedChildren || [];
+            return saveExtras(doc, original, extras);
           })
+          .then(function(res) {
+            children = children.concat(res.children);
+            return res.doc;
+          })
+          .then(persist)
           .then(function(doc) {
             return $q
               .all(_.map(children, function(child) {
                 child.parent = doc;
-                return DB.get().put(child);
+                return DB.put(child);
               }))
               .then(function() {
                 return doc;

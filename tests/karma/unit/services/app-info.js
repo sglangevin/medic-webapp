@@ -18,8 +18,12 @@ describe('AppInfo service', function() {
     });
   });
 
+  afterEach(function() {
+    KarmaUtils.restore(Settings);
+  });
+
   it('returns errors', function(done) {
-    Settings.callsArgWith(0, 'boom');
+    Settings.returns(KarmaUtils.mockPromise('boom'));
     service()
       .then(function() {
         done('SHOULD NOT GET HERE');
@@ -32,12 +36,12 @@ describe('AppInfo service', function() {
   });
 
   it('gets the form', function(done) {
-    Settings.callsArgWith(0, null, {
+    Settings.returns(KarmaUtils.mockPromise(null, {
       forms: {
         a: { id: 'a' },
         b: { id: 'b' }
       }
-    });
+    }));
     service()
       .then(function(appinfo) {
         var form = appinfo.getForm('a');
@@ -51,9 +55,9 @@ describe('AppInfo service', function() {
   });
 
   it('formats the date', function(done) {
-    Settings.callsArgWith(0, null, {
+    Settings.returns(KarmaUtils.mockPromise(null, {
       date_format: 'YYYY'
-    });
+    }));
     service()
       .then(function(appinfo) {
         var date = moment().add(1, 'years');
@@ -69,7 +73,7 @@ describe('AppInfo service', function() {
   });
 
   it('translates the key', function(done) {
-    Settings.callsArgWith(0, null, {
+    Settings.returns(KarmaUtils.mockPromise(null, {
       translations: [
         { 
           key: 'welcome', 
@@ -80,7 +84,7 @@ describe('AppInfo service', function() {
           translations: [{ locale: 'en', content: 'bye' }]
         }
       ]
-    });
+    }));
     service()
       .then(function(appinfo) {
         var actual = appinfo.translate('welcome', 'en_NZ');
@@ -94,7 +98,7 @@ describe('AppInfo service', function() {
   });
 
   it('translates the key to the default locale if none provided', function(done) {
-    Settings.callsArgWith(0, null, {
+    Settings.returns(KarmaUtils.mockPromise(null, {
       locale: 'en',
       translations: [
         { 
@@ -106,7 +110,7 @@ describe('AppInfo service', function() {
           translations: [{ locale: 'en', content: 'bye' }]
         }
       ]
-    });
+    }));
     service()
       .then(function(appinfo) {
         var actual = appinfo.translate('welcome');

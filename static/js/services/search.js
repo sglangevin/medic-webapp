@@ -10,15 +10,19 @@ var _ = require('underscore'),
   inboxServices.factory('Search', ['DB', 'DbView', 'GenerateSearchRequests',
     function(DB, DbView, GenerateSearchRequests) {
 
-      var _currentQuery;
+      var _currentQueryString, _currentQueryScope;
 
-      var debounce = function(requests) {
+      // Silently cancel repeated queries.  We decide if the query is repeated
+      // by checking if its search string and scope are identical to the
+      // previous query.
+      var debounce = function(scope, requests) {
         var queryString = JSON.stringify(requests);
-        if (queryString === _currentQuery) {
-          // debounce as same query already running
+        if (scope === _currentQueryScope &&
+            queryString === _currentQueryString) {
           return true;
         }
-        _currentQuery = queryString;
+        _currentQueryScope = scope;
+        _currentQueryString = queryString;
         return false;
       };
 
@@ -49,11 +53,11 @@ var _ = require('underscore'),
       };
 
       var view = function(request, options, callback) {
-        DbView(
-          request.view,
-          { params: request.params },
-          callback
-        );
+        DbView(request.view, { params: request.params })
+          .then(function(data) {
+            callback(null, data.results);
+          })
+          .catch(callback);
       };
 
       var filter = function(requests, options, callback) {
@@ -64,7 +68,7 @@ var _ = require('underscore'),
           var intersection = getIntersection(responses, options);
           var page = getPage(intersection, options);
           if (!page.length) {
-            callback(null, []);
+            return callback(null, []);
           }
           DB.get()
             .allDocs({ include_docs: true, keys: page })
@@ -91,14 +95,14 @@ var _ = require('underscore'),
         }
       };
 
-      var generateRequests = function($scope, callback) {
+      var generateRequests = function($scope, options, callback) {
         var requests;
         try {
           requests = GenerateSearchRequests($scope);
         } catch(e) {
           return callback(e);
         }
-        if (debounce(requests)) {
+        if (!options.force && debounce($scope, requests)) {
           return;
         }
         callback(null, requests);
@@ -110,12 +114,12 @@ var _ = require('underscore'),
           skip: 0,
           type: $scope.filterModel.type
         });
-        generateRequests($scope, function(err, requests) {
+        generateRequests($scope, options, function(err, requests) {
           if (err) {
             return callback(err);
           }
           execute(requests, options, function(err, results) {
-            _currentQuery = null;
+            _currentQueryScope = _currentQueryString = null;
             callback(err, results);
           });
         });

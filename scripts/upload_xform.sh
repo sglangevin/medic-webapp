@@ -2,24 +2,35 @@
 
 SELF=$(basename $0)
 
+USE_CONTEXT_FILE=false
 FORCE=false
-while getopts "f" opt; do
+while getopts "c:f" opt; do
     case $opt in
+        c) USE_CONTEXT_FILE=true ; CONTEXT_FILE="$OPTARG" ;;
         f) FORCE=true ;;
     esac
     shift $((OPTIND-1))
 done
 
 _usage () {
-    echo ""
-    echo "Usage:"
-    echo "  $SELF [options] <form id> <path to xform> [attachments ...]"
-    echo ""
-    echo "Options:"
-    echo "  -f  force-overwrite "
-    echo ""
-    echo "Examples: "
-    echo "  COUCH_URL=http://localhost:8000/medic $SELF registration /home/henry/forms/RegisterPregnancy.xml"
+cat <<EOF
+
+Usage:
+  $SELF [options] <form id> <path to xform> [attachments ...]
+
+Options:
+  -f
+      force-overwrite of existing doc
+  -c <json-file>
+      set the context(s) for which this form will be available
+
+Examples:
+  COUCH_URL=http://localhost:8000/medic $SELF registration /home/henry/forms/RegisterPregnancy.xml
+EOF
+}
+
+error() {
+  echo "[$0] Error: $1"; exit 1
 }
 
 if [[ $# < 2 ]]; then
@@ -28,28 +39,56 @@ if [[ $# < 2 ]]; then
     exit 1
 fi
 
+if [[ -z "${COUCH_URL-}" ]]; then
+    echo "[$SELF] ERROR: 'COUCH_URL' not set."
+    _usage
+    exit 1
+fi
+
+if ! curl "$COUCH_URL"; then
+    echo "[$SELF] ERROR: Could not find server at $COUCH_URL.  Is CouchDB running?"
+    exit 1
+fi
+
 ID="$1"
 shift
+
 XFORM_PATH="$1"
+if ! [[ -f "$XFORM_PATH" ]]; then
+    echo "[$SELF] ERROR: could not find xform at path: $XFORM_PATH"
+    exit 1
+fi
 shift
-DB="${COUCH_URL-http://127.0.0.1:5984/medic}"
+
+DB="${COUCH_URL}"
 
 echo "[$SELF] parsing XML to get form title and internal ID..."
 # Yeah, it's ugly.  But we control the input.
 formTitle="$(grep h:title $XFORM_PATH | sed -E -e 's_.*<h:title>(.*)</h:title>.*_\1_')"
 formInternalId="$(sed -e '1,/<instance>/d' $XFORM_PATH | grep -E 'id="[^"]+"' | head -n1 | sed -E -e 's_.*id="([^"]+)".*_\1_')"
 
-contextPatient=false
-contextPlace=false
-if grep -Fq '/inputs/_patient_id' $XFORM_PATH; then
-    contextPatient=true
+if $USE_CONTEXT_FILE; then
+    formContext="$(cat "${CONTEXT_FILE}")"
+else
+    contextPatient=false
+    contextPlace=false
+    if grep -Fq '/context/person' $XFORM_PATH; then
+        contextPatient=true
+    fi
+    if grep -Fq '/context/place' $XFORM_PATH; then
+        contextPlace=true
+    fi
+    formContext='{ "person":'"$contextPatient"', "place":'"$contextPlace"' }'
 fi
-if grep -Fq '/inputs/_place_id' $XFORM_PATH; then
-    contextPlace=true
-fi
-formContext='{ "person":'"$contextPatient"', "place":'"$contextPlace"' }'
 
 docUrl="${DB}/form:${ID}"
+
+fullJson='{
+    "type": "form",
+    "title": "'"${formTitle}"'",
+    "internalId": "'"${formInternalId}"'",
+    "context": '"${formContext}"'
+}'
 
 cat <<EOF
 [$SELF] -----
@@ -61,15 +100,9 @@ cat <<EOF
 [$SELF]   force override: $FORCE
 [$SELF]   uploading to: $docUrl
 [$SELF]   form context: $formContext
+[$SELF]   full JSON: $fullJson
 [$SELF] -----
 EOF
-
-if $FORCE; then
-    echo "[$SELF] Trying to delete existing doc..."
-    revResponse=$(curl -s "$docUrl")
-    rev=$(jq -r ._rev <<< "$revResponse")
-    curl -s -X DELETE "${docUrl}?rev=${rev}" >/dev/null
-fi
 
 check_rev() {
     # exit if we don't see a rev property
@@ -79,22 +112,32 @@ check_rev() {
     fi
 }
 
-revResponse=$(curl -# -s -H "Content-Type: application/json" -X PUT -d '{
-    "type":"form",
-    "title":"'"${formTitle}"'",
-    "internalId":"'"${formInternalId}"'",
-    "context":'"${formContext}"'
-}' "$docUrl")
+rev=""
+if $FORCE; then
+    revResponse="$(curl -s ${docUrl})"
+    if [[ "not_found" != "$(jq -r .error <<< "$revResponse")" ]]; then
+      rev=$(jq -r ._rev <<< "$revResponse")
+      check_rev
+    fi
+fi
+
+if [ -z "${rev-}" ]; then
+  revResponse=$(curl -# -s -H "Content-Type: application/json" -X PUT -d "${fullJson}" "$docUrl")
+else
+  revResponse=$(curl -# -s -H "Content-Type: application/json" -X PUT -d "${fullJson}" "$docUrl?rev=${rev-}")
+fi
+echo "[$0] Upload response: $revResponse"
 rev=$(jq -r .rev <<< "$revResponse")
 check_rev
 
 # Upload a temp file with the title stripped
 sed '/<h:title>/d' "$XFORM_PATH" > "$XFORM_PATH.$$.tmp"
 
-echo "[$SELF] Uploading form: $ID..."
+echo "[$SELF] Uploading form xml: id: $ID, rev: $rev..."
 revResponse=$(curl -# -f -X PUT -H "Content-Type: text/xml" \
     --data-binary "@${XFORM_PATH}.$$.tmp" \
     "${docUrl}/xml?rev=${rev}")
+echo "revResponse: $revResponse"
 rev=$(jq -r .rev <<< "$revResponse")
 
 rm "$XFORM_PATH.$$.tmp"

@@ -1,8 +1,8 @@
 var _ = require('underscore');
 
 var CLINIC = {
-  badge: 'fa-home',
-  icon: 'fa-home',
+  badge: 'fa-group',
+  icon: 'fa-group',
   fields: {
     name: {
       type: 'string',
@@ -63,17 +63,11 @@ var HEALTH_CENTER = {
 
 var PERSON = {
   badge: 'fa-user',
-  name: '{{first_name}} {{last_name}}',
   fields: {
-    first_name: {
+    name: {
       type: 'string',
       required: true,
     },
-    last_name: {
-      type: 'string',
-      required: true,
-    },
-    national_id_number: 'string',
     date_of_birth: 'date',
     phone: {
       type: 'tel',

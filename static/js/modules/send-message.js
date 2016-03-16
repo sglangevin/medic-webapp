@@ -24,8 +24,11 @@ var _ = require('underscore'),
     if (data.everyoneAt) {
       return true;
     }
-    var contact = data.doc.contact || data.doc;
-    return contact && libphonenumber.validate(settings, contact.phone);
+    if (data.doc) {
+      var contact = data.doc.contact || data.doc;
+      return contact && libphonenumber.validate(settings, contact.phone);
+    }
+    return libphonenumber.validate(settings, data.id);
   };
 
   var validatePhoneNumbers = function(recipients) {
@@ -82,6 +85,9 @@ var _ = require('underscore'),
   var formatResult = function(row) {
     var icon,
         contact;
+    if (row.text) {
+      return row.text;
+    }
     if (row.everyoneAt) {
       icon = 'fa-hospital-o';
       contact = format.sender({
@@ -95,14 +101,17 @@ var _ = require('underscore'),
       icon = 'fa-user';
       contact = format.contact(row.doc);
     }
-    return '<span class="fa fa-fw ' + icon + '"></span>' + contact;
+    return $('<span class="fa fa-fw ' + icon + '"></span>' + contact);
   };
 
   var formatSelection = function(row) {
     if (row.everyoneAt) {
       return formatEveryoneAt(row);
     }
-    return row.doc.name || row.doc.phone;
+    if (row.doc) {
+      return row.doc.name || row.doc.phone;
+    }
+    return row.id;
   };
 
   var createChoiceFromNumber = function(phone) {
@@ -114,12 +123,13 @@ var _ = require('underscore'),
   };
 
   var filter = function(options, contacts) {
-    var terms = _.map(options.term.toLowerCase().split(/\s+/), function(term) {
-      if (libphonenumber.validate(settings, term)) {
-        return libphonenumber.format(settings, term);
-      }
-      return term;
-    });
+    var terms = options.term ?
+      _.map(options.term.toLowerCase().split(/\s+/), function(term) {
+        if (libphonenumber.validate(settings, term)) {
+          return libphonenumber.format(settings, term);
+        }
+        return term;
+      }) : [];
     var matches = _.filter(contacts, function(val) {
       var tags = [ val.name, val.phone ];
       var parent = val.parent;
@@ -136,37 +146,40 @@ var _ = require('underscore'),
       return a.name.toLowerCase().localeCompare(
              b.name.toLowerCase());
     });
-    return _.map(matches, function(doc) {
+    var data = _.map(matches, function(doc) {
       return { id: doc._id, doc: doc, everyoneAt: doc.everyoneAt };
     });
+
+    // if a valid phone number is entered, allow it to be selected as a recipient
+    if (libphonenumber.validate(settings, options.term)) {
+      var formatted = libphonenumber.format(settings, options.term);
+      data.unshift(createChoiceFromNumber(formatted));
+    }
+
+    return data;
   };
 
-  var initPhoneField = function($phone) {
+  var initPhoneField = function($phone, callback) {
     if (!$phone) {
       return;
     }
     $phone.parent().show();
-    $phone.select2({
-      multiple: true,
-      allowClear: true,
-      selectFreetextOnBlur: true, // custom attribute to only select freetext on blur
-      formatResult: formatResult,
-      formatSelection: formatSelection,
-      query: function(options) {
-        contact(function(err, vals) {
-          if (err) {
-            return console.log('Failed to retrieve contacts', err);
-          }
-          options.callback({
-            results: filter(options, vals)
-          });
-        });
-      },
-      createSearchChoice: function(term, data) {
-        if (/^\+?\d*$/.test(term) && data.length === 0) {
-          return createChoiceFromNumber(term);
-        }
+    contact(function(err, data) {
+      if (err) {
+        return callback(err);
       }
+      data = filter({}, data);
+      $phone.select2({
+        data: data,
+        allowClear: true,
+        tags: true,
+        createSearchChoice: createChoiceFromNumber,
+        dropdownParent: $('#send-message'),
+        templateResult: formatResult,
+        templateSelection: formatSelection,
+        width: '100%',
+      });
+      callback();
     });
   };
 
@@ -178,12 +191,12 @@ var _ = require('underscore'),
         to = options.to;
     if (to) {
       if (typeof to === 'string') {
-        val.push(createChoiceFromNumber(to));
+        val.push(to);
       } else if (to) {
-        val.push({ id: to._id, doc: to, everyoneAt: options.everyoneAt });
+        val.push(to._id);
       }
     }
-    $modal.find('[name=phone]').select2('data', val);
+    $modal.find('[name=phone]').val(val).trigger('change');
     $modal.find('[name=message]').val(options.message || '');
     $modal.find('.count').text('');
     $modal.modal('show');
@@ -196,35 +209,39 @@ var _ = require('underscore'),
   exports.init = function(Settings, Contact, _translateFn) {
     contact = Contact;
     translateFn = _translateFn;
-    Settings(function(err, _settings) {
-      if (err) {
-        return console.log('Failed to retrieve settings', err);
-      }
+    Settings()
+      .then(function(_settings) {
+        settings = _settings;
+        $('body').on('click', '.send-message', function(e) {
+          initPhoneField($('#send-message [name=phone]'), function(err) {
+            if (err) {
+              return console.error('Error initialising phone search');
+            }
 
-      $('body').on('click', '.send-message', function(e) {
-        var target = $(e.target).closest('.send-message');
-        if (target.hasClass('mm-icon-disabled')) {
-          return;
-        }
-        e.preventDefault();
-        var to = target.attr('data-send-to');
-        if (to) {
-          try {
-            to = JSON.parse(to);
-          } catch(e) {}
-        }
-        if (to && to.type === 'data_record') {
-          to = to.contact || to.from;
-        }
-        exports.showModal({
-          to: to,
-          everyoneAt: target.attr('data-everyone-at') === 'true'
+            var target = $(e.target).closest('.send-message');
+            if (target.hasClass('mm-icon-disabled')) {
+              return;
+            }
+            e.preventDefault();
+            var to = target.attr('data-send-to');
+            if (to) {
+              try {
+                to = JSON.parse(to);
+              } catch(e) {}
+            }
+            if (to && to.type === 'data_record') {
+              to = to.contact || to.from;
+            }
+            exports.showModal({
+              to: to,
+              everyoneAt: target.attr('data-everyone-at') === 'true'
+            });
+          });
         });
+      })
+      .catch(function(err) {
+        console.error('Failed to retrieve settings', err);
       });
-      initPhoneField($('#send-message [name=phone]'));
-
-      settings = _settings;
-    });
   };
 
   exports.setRecipients = function(_recipients) {
@@ -290,7 +307,7 @@ var _ = require('underscore'),
 
     validateRecipients($modal, function(err, phone) {
       if (err) {
-        return console.log('Error validating recipients', err);
+        return;
       }
       if (phone.valid && message.valid) {
         callback(phone.value, message.value);

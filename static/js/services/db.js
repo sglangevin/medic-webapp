@@ -1,5 +1,6 @@
 var utils = require('kujua-utils'),
-    async = require('async');
+    async = require('async'),
+    etagRegex = /(?:^W\/)|['"]/g;
 
 (function () {
 
@@ -8,10 +9,12 @@ var utils = require('kujua-utils'),
   var inboxServices = angular.module('inboxServices');
 
   inboxServices.factory('DB', [
-    '$http', '$timeout', 'pouchDB', 'Session', 'DbNameService',
-    function($http, $timeout, pouchDB, Session, DbNameService) {
+    '$http', '$timeout', '$log', '$window', 'pouchDB', 'Session', 'DbNameService', 'E2ETESTING',
+    function($http, $timeout, $log, $window, pouchDB, Session, DbNameService, E2ETESTING) {
 
       var cache = {};
+
+      $window.PouchDB.adapter('worker', require('worker-pouch'));
 
       var getRemoteUrl = function(name) {
         name = name || DbNameService();
@@ -28,12 +31,21 @@ var utils = require('kujua-utils'),
       };
 
       var getLocal = function(name) {
-        return getFromCache(name || DbNameService());
+        var userCtx = Session.userCtx();
+        if (!userCtx) {
+          return Session.navigateToLogin();
+        }
+        return getFromCache(
+          (name || DbNameService()) + '-user-' + userCtx.name,
+          { adapter: 'worker' }
+        );
       };
 
-      var getFromCache = function(name) {
+      var getFromCache = function(name, options) {
         if (!cache[name]) {
-          cache[name] = pouchDB(name, { auto_compaction: true });
+          options = options || {};
+          options.auto_compaction = true;
+          cache[name] = pouchDB(name, options);
         }
         return cache[name];
       };
@@ -50,58 +62,75 @@ var utils = require('kujua-utils'),
           .put(ddoc)
           .then(callback)
           .catch(function(err) {
-            console.error('Error updating local ddoc.', err);
+            $log.error('Error updating local ddoc.', err);
           });
       };
 
       var checkLocalDesignDoc = function(rev, callback) {
-        if (isAdmin()) {
-          // admins access ddoc from remote db directly so don't update them
-          return callback();
-        }
         getLocal()
           .get('_design/medic')
           .then(function(localDdoc) {
-            if (localDdoc.remote_rev >= rev) {
+            if (localDdoc.remote_rev === rev) {
               return;
             }
-            getRemote()
+            return getRemote()
               .get('_design/medic')
               .then(function(remoteDdoc) {
                 updateLocalDesignDoc(localDdoc, remoteDdoc, callback);
-              })
-              .catch(function(err) {
-                console.error('Error updating ddoc. Check your connection and try again.', err);
               });
           })
           .catch(function(err) {
-            console.error('Error updating ddoc. Check your connection and try again.', err);
+            if (err.status === 401) {
+              Session.navigateToLogin();
+            } else {
+              $log.error('Error updating ddoc. Check your connection and try again.', err);
+            }
           });
       };
 
       var watchDesignDoc = function(callback) {
-        async.forever(function(next) {
-          // Check current ddoc revision
-          $http({
-            method: 'HEAD',
-            url: getRemoteUrl() + '/_design/medic'
-          }).success(function(data, status, headers) {
-            var rev = headers().etag.replace(/"/g, '');
-            checkLocalDesignDoc(rev, callback);
+        if (!E2ETESTING) {
+          async.forever(function(next) {
+            if (!isAdmin()) {
+              // check current ddoc revision vs local pouch version
+              $http({
+                method: 'HEAD',
+                url: getRemoteUrl() + '/_design/medic'
+              }).success(function(data, status, headers) {
+                var rev = headers().etag.replace(etagRegex, '');
+                checkLocalDesignDoc(rev, callback);
+              }).catch(function(err) {
+                if (err.status === 401) {
+                  Session.navigateToLogin();
+                } else {
+                  $log.error('Error watching HEAD of ddoc', err);
+                }
+              });
+            }
+
+            // Listen for remote ddoc changes
+            getRemote()
+              .changes({
+                live: true,
+                since: 'now',
+                doc_ids: [ '_design/medic' ],
+                timeout: 1000 * 60 * 60
+              })
+              .on('change', function(change) {
+                if (isAdmin()) {
+                  // admins access ddoc from remote db directly so
+                  // no need to check local ddoc
+                  return callback();
+                }
+                checkLocalDesignDoc(change.changes[0].rev, callback);
+              })
+              .on('error', function(err) {
+                $log.debug('Error watching for changes on the design doc', err);
+                $timeout(next, 10000);
+              });
           });
-
-          // Listen for remote ddoc changes
-          getRemote()
-            .changes({ live: true, since: 'now', doc_ids: [ '_design/medic' ] })
-            .on('change', function(change) {
-              checkLocalDesignDoc(change.changes[0].rev, callback);
-            })
-            .on('error', function() {
-              $timeout(next, 10000);
-            });
-        });
+        }
       };
-
 
       return {
         get: get,

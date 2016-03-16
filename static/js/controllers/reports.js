@@ -9,13 +9,14 @@ var _ = require('underscore'),
   var inboxControllers = angular.module('inboxControllers');
 
   inboxControllers.controller('ReportsCtrl', 
-    ['$scope', '$rootScope', '$state', '$stateParams', '$timeout', 'translateFilter', 'Settings', 'MarkRead', 'Search', 'Changes', 'EditGroup', 'FormatDataRecord', 'DB', 'Verified',
-    function ($scope, $rootScope, $state, $stateParams, $timeout, translateFilter, Settings, MarkRead, Search, Changes, EditGroup, FormatDataRecord, DB, Verified) {
+    ['$scope', '$rootScope', '$state', '$stateParams', '$timeout', '$translate', 'TranslateFrom', 'LiveList', 'Settings', 'MarkRead', 'Search', 'EditGroup', 'FormatDataRecord', 'DB', 'Verified',
+    function ($scope, $rootScope, $state, $stateParams, $timeout, $translate, TranslateFrom, LiveList, Settings, MarkRead, Search, EditGroup, FormatDataRecord, DB, Verified) {
 
       $scope.filterModel.type = 'reports';
       $scope.selectedGroup = null;
-      $scope.reports = [];
       $scope.selected = null;
+
+      var liveList = LiveList.reports;
 
       $scope.setSelectedGroup = function(group) {
         $scope.selectedGroup = angular.copy(group);
@@ -28,43 +29,26 @@ var _ = require('underscore'),
             pane.done();
           })
           .catch(function(err) {
-            pane.done(translateFilter('Error updating group'), err);
+            $translate('Error updating group').then(function(text) {
+              pane.done(text, err);
+            });
           });
       };
 
-      var _merge = function(to, from) {
-        if (from._rev !== to._rev) {
-          for (var prop in from) {
-            if (from.hasOwnProperty(prop)) {
-              to[prop] = from[prop];
-            }
-          }
-        }
-      };
-
       $scope.update = function(updated) {
-        _.each(updated, function(newMsg) {
-          if ($scope.selected && $scope.selected._id === newMsg._id) {
-            _merge($scope.selected, newMsg);
-          }
-          var oldMsg = _.findWhere($scope.reports, { _id: newMsg._id });
-          if (oldMsg) {
-            _merge(oldMsg, newMsg);
-            if (!$scope.selected && $stateParams.id === oldMsg._id) {
-              _setSelected(oldMsg);
-            }
-          } else {
-            $scope.reports.push(newMsg);
-          }
+        _.each(updated, function(report) {
+          liveList.update(report, false);
         });
+        $scope.hasReports = liveList.count() > 0;
+        liveList.refresh();
       };
 
-      var _setSelected = function(message) {
-        $scope.setSelected(message);
-        if (!$scope.isRead(message)) {
+      var _setSelected = function(report) {
+        $scope.setSelected(report);
+        if (!$scope.isRead(report)) {
           $scope.readStatus.forms--;
         }
-        MarkRead(message._id, true)
+        MarkRead(report._id, true)
           .then($scope.updateReadStatus)
           .catch(function(err) {
             console.log(err);
@@ -72,11 +56,37 @@ var _ = require('underscore'),
       };
 
       var setTitle = function(doc) {
+        var name = doc.form;
         var form = _.findWhere($scope.forms, { code: doc.form });
-        $scope.setTitle((form && form.name) || doc.form);
+        if (form) {
+          name = form.name;
+        } else {
+          form = _.findWhere($scope.nonContactForms, { internalId: doc.form });
+          if (form) {
+            name = TranslateFrom(form.title);
+          }
+        }
+        $scope.setTitle(name);
+      };
+
+      var updateDisplayFields = function(report) {
+        // calculate fields to display
+        var keys = Object.keys(report.fields);
+        report.display_fields = {};
+        _.each(keys, function(k) {
+          if(!(report.hidden_fields && _.contains(report.hidden_fields, k))) {
+            report.display_fields[k] = report.fields[k];
+          }
+        });
       };
 
       $scope.setSelected = function(doc) {
+        if (doc.fields) {
+          updateDisplayFields(doc);
+        }
+
+        liveList.setSelected(doc._id);
+
         var refreshing = doc && $scope.selected && $scope.selected.id === doc._id;
         $scope.selected = doc;
         setTitle(doc);
@@ -89,32 +99,27 @@ var _ = require('underscore'),
         $scope.settingSelected(refreshing);
       };
 
-      $scope.selectMessage = function(id) {
-        if ($scope.selected && $scope.selected._id && $scope.selected._id === id) {
+      $scope.selectReport = function(id) {
+        $scope.clearSelected();
+
+        if (!id || !liveList.initialised()) {
           return;
         }
-        $scope.clearSelected();
-        if (id && $scope.reports) {
-          $scope.setLoadingContent(id);
-          var message = _.findWhere($scope.reports, { _id: id });
-          if (message) {
-            _setSelected(message);
-          } else {
-            DB.get()
-              .get(id)
-              .then(FormatDataRecord)
-              .then(function(doc) {
-                if (doc) {
-                  _setSelected(doc[0]);
-                  _initScroll();
-                }
-              })
-              .catch(function(err) {
-                $scope.setSelected();
-                console.error(err);
-              });
-          }
-        }
+
+        $scope.setLoadingContent(id);
+        DB.get()
+          .get(id)
+          .then(FormatDataRecord)
+          .then(function(doc) {
+            if (doc) {
+              _setSelected(doc[0]);
+              _initScroll();
+            }
+          })
+          .catch(function(err) {
+            $scope.clearSelected();
+            console.error(err);
+          });
       };
 
       $scope.query = function(options) {
@@ -124,15 +129,15 @@ var _ = require('underscore'),
           $scope.error = false;
           $scope.errorSyntax = false;
           $scope.loading = true;
-          if ($('#back').is(':visible')) {
-            $scope.selectMessage();
+          if ($scope.isMobile()) {
+            $scope.selectReport();
           }
         }
         if (options.skip) {
           $scope.appending = true;
-          options.skip = $scope.reports.length;
+          options.skip = liveList.count();
         } else if (!options.silent) {
-          $scope.reports = [];
+          liveList.set([]);
         }
 
         Search($scope, options, function(err, data) {
@@ -148,6 +153,8 @@ var _ = require('underscore'),
             return console.log('Error loading messages', err);
           }
 
+          $scope.moreItems = liveList.moreItems = data.length >= options.limit;
+
           FormatDataRecord(data)
             .then(function(data) {
               $scope.loading = false;
@@ -158,7 +165,7 @@ var _ = require('underscore'),
               var curr = _.findWhere(data, { _id: $state.params.id });
               if (curr) {
                 $scope.setSelected(curr);
-              } else if (!$('#back').is(':visible') &&
+              } else if (!$scope.isMobile() &&
                          !$scope.selected &&
                          $state.is('reports.detail')) {
                 $timeout(function() {
@@ -176,7 +183,49 @@ var _ = require('underscore'),
       };
 
       $scope.$on('query', function() {
-        $scope.query();
+        if ($scope.filterModel.type !== 'reports') {
+          // not viewing reports tab
+          liveList.clearSelected();
+          return;
+        }
+        if ($scope.isMobile() && $scope.showContent) {
+          // leave content shown
+          return;
+        }
+        $scope.loading = true;
+
+        if (($scope.filterQuery && $scope.filterQuery.value) ||
+            ($scope.filterModel && (
+              ($scope.filterModel.contactTypes && $scope.filterModel.contactTypes.length) ||
+              $scope.filterModel.facilities.length ||
+              $scope.filterModel.forms.length ||
+              ($scope.filterModel.date && ($scope.filterModel.date.from || $scope.filterModel.date.to)) ||
+              (typeof $scope.filterModel.valid !== 'undefined') ||
+              (typeof $scope.filterModel.verified !== 'undefined')))) {
+
+          $scope.filtered = true;
+
+          liveList = LiveList['report-search'];
+          liveList.set([]);
+
+          $scope.query();
+        } else {
+          $scope.filtered = false;
+          liveList = LiveList.reports;
+
+          if (liveList.initialised()) {
+            $timeout(function() {
+              $scope.loading = false;
+              liveList.refresh();
+              $scope.hasReports = liveList.count() > 0;
+              $scope.moreItems = liveList.moreItems;
+              _initScroll();
+            });
+          } else {
+            $scope.query();
+          }
+        }
+
       });
 
       $scope.$on('ClearSelected', function() {
@@ -203,31 +252,13 @@ var _ = require('underscore'),
       var _initScroll = function() {
         scrollLoader.init(function() {
           if (!$scope.loading && $scope.moreItems) {
-            $timeout(function() {
-              $scope.query({ skip: true });
-            });
+            $scope.query({ skip: true });
           }
         });
       };
 
-      Changes({
-        key: 'reports-list',
-        callback: function() {
-          $scope.query({ silent: true, changes: true });
-        },
-        filter: function(change) {
-          if ($scope.filterModel.type !== 'reports') {
-            return false;
-          }
-          if (change.newDoc) {
-            return change.newDoc.form;
-          }
-          return _.findWhere($scope.reports, { _id: change.id });
-        }
-      });
-
       if (!$stateParams.id) {
-        $scope.selectMessage();
+        $scope.selectReport();
       }
 
       $scope.setFilterQuery($stateParams.query);
@@ -249,23 +280,22 @@ var _ = require('underscore'),
 
       var initEditMessageModal = function() {
         $timeout(function() {
-          Settings(function(err, res) {
-            if (!err) {
+          Settings()
+            .then(function(settings) {
               $('#edit-message-group .datepicker').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
                 applyClass: 'btn-primary',
                 cancelClass: 'btn-link',
                 parentEl: '#edit-message-group .modal-dialog .modal-content',
-                format: res.reported_date_format,
+                format: settings.reported_date_format,
                 minDate: getNextHalfHour()
               },
               function(date) {
                 var i = this.element.closest('fieldset').attr('data-index');
                 $scope.selectedGroup.rows[i].due = date.toISOString();
               });
-            }
-          });
+            });
         });
       };
 

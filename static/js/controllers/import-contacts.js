@@ -27,7 +27,7 @@ var modal = require('../modules/modal');
 
       $scope.save = function() {
         var pane = modal.start($('#import-contacts'));
-        var file = $scope.data && $scope.data[0];
+        var file = $('#import-contacts [name="contacts"]').prop('files')[0];
         if (!file) {
           return pane.done(translateFilter('field is required', {
             field: translateFilter('Contacts')
@@ -37,9 +37,13 @@ var modal = require('../modules/modal');
           if (err) {
             return pane.done(translateFilter('Error parsing file'), err);
           }
-          ImportContacts(contacts, $scope.overwrite, function(err) {
-            pane.done(translateFilter('Error parsing file'), err);
-          });
+          ImportContacts(contacts, $scope.overwrite)
+            .then(function() {
+              pane.done();
+            })
+            .catch(function(err) {
+              pane.done(translateFilter('Error parsing file'), err);
+            });
         });
       };
 

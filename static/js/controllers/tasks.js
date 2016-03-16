@@ -7,48 +7,29 @@ var _ = require('underscore');
   var inboxControllers = angular.module('inboxControllers');
 
   inboxControllers.controller('TasksCtrl',
-    ['$timeout', '$scope', '$state', 'TranslateFrom', 'TaskGenerator', 'Changes',
-    function ($timeout, $scope, $state, TranslateFrom, TaskGenerator, Changes) {
+    ['$scope', '$state', '$timeout', 'LiveList', 'TranslateFrom',
+    function ($scope, $state, $timeout, LiveList, TranslateFrom) {
+
+      var setSelectedTask = function(task) {
+        LiveList.tasks.setSelected(task._id);
+        $scope.selected = task;
+        $scope.setTitle(TranslateFrom(task.title, task));
+        $scope.setShowContent(true);
+      };
 
       $scope.setSelected = function(id) {
         var refreshing = ($scope.selected && $scope.selected._id) === id,
-            task = _.findWhere($scope.tasks, { _id: id });
+            task = _.findWhere(LiveList.tasks.getList(), { _id: id });
         if (task) {
-          $scope.selected = task;
           $scope.settingSelected(refreshing);
-          $scope.setTitle(TranslateFrom(task.title, task));
+          setSelectedTask(task);
         } else {
           $scope.clearSelected();
         }
       };
 
-      var updateTasks = function(options) {
-        options = options || {};
-        if (!options.silent) {
-          $scope.loading = true;
-        }
-        $scope.error = false;
-        TaskGenerator()
-          .then(function(tasks) {
-            $scope.tasks = _.where(tasks, { resolved: false });
-            $scope.loading = false;
-            $scope.setSelected($state.params.id);
-            if (!$scope.selected &&
-                !$('#back').is(':visible') &&
-                $state.is('tasks.detail')) {
-              $timeout(function() {
-                var id = $('.inbox-items li').first().attr('data-record-id');
-                $state.go('tasks.detail', { id: id }, { location: 'replace' });
-              });
-            }
-          })
-          .catch(function(err) {
-            console.log('Error generating tasks', err);
-            $scope.loading = false;
-            $scope.error = true;
-            $scope.tasks = [];
-            $scope.clearSelected();
-          });
+      $scope.refreshTaskList = function() {
+        window.location.reload();
       };
 
       $scope.$on('ClearSelected', function() {
@@ -56,25 +37,34 @@ var _ = require('underscore');
       });
 
       $scope.filterModel.type = 'tasks';
-      $scope.tasks = [];
+      $timeout(function() {
+        LiveList.tasks.refresh();
+      });
       $scope.selected = null;
-      updateTasks();
+      $scope.error = false;
+      $scope.hasTasks = LiveList.tasks.count() > 0;
 
-      Changes({
-        key: 'tasks-list',
-        callback: function() {
-          updateTasks({ silent: true });
-        },
-        filter: function(change) {
-          if ($scope.filterModel.type !== 'tasks') {
-            return false;
-          }
-          if (change.newDoc) {
-            return change.newDoc.form;
-          }
-          return true;
+      LiveList.tasks.notifyChange = function(task) {
+        $scope.hasTasks = LiveList.tasks.count() > 0;
+        if ($scope.selected && task._id === $scope.selected._id ||
+            (!$scope.selected && task._id === $state.params.id)) {
+          setSelectedTask(task);
+        }
+      };
+      LiveList.tasks.notifyError = function() {
+        $scope.error = true;
+        $scope.clearSelected();
+      };
+
+      $scope.$on('query', function() {
+        if ($scope.filterModel.type !== 'tasks') {
+          LiveList.tasks.clearSelected();
+          delete LiveList.tasks.notifyChange;
+          delete LiveList.tasks.notifyError;
+          return;
         }
       });
+
     }
   ]);
 

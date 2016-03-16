@@ -84,6 +84,8 @@
         // tests_ui globals
         "beforeEach": true,
         "afterEach" : true,
+        "beforeAll" : true,
+        "afterAll"  : true,
         "it"        : true,
         "describe"  : true,
         "inject"    : true,
@@ -96,6 +98,9 @@
         "by"        : true,
         "browser"   : true,
         "KarmaUtils": true,
-        "Promise"   : true
+        "Promise"   : true,
+        "Q"         : true,
+        "emit"      : true,
+        "unescape"  : true
     }
 }

@@ -1,11 +1,10 @@
 @import (inline) "reset.css";
-@import "bower_components/bootstrap/less/bootstrap";
-@import "bower_components/fontawesome/less/font-awesome";
-@import (inline) "bower_components/select2/select2.css";
-@import (inline) "bower_components/select2-bootstrap-css/select2-bootstrap.css";
-@import (inline) "bower_components/bootstrap-daterangepicker/daterangepicker-bs3.css";
-@import (inline) "bower_components/nvd3/nv.d3.css";
-@import (inline) "bower_components/bootstrap-tour/build/css/bootstrap-tour.css";
+@import "node_modules/bootstrap/less/bootstrap";
+@import "node_modules/font-awesome/less/font-awesome";
+@import (inline) "node_modules/select2/dist/css/select2.css";
+@import (inline) "node_modules/bootstrap-daterangepicker/daterangepicker.css";
+@import (inline) "node_modules/nvd3/nv.d3.css";
+@import (inline) "node_modules/bootstrap-tour/build/css/bootstrap-tour.css";
 
 @import "variables";
 @import "mixins";
@@ -20,7 +19,7 @@
 @import "enketo/medic";
 
 .container-fluid {
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 body {
@@ -59,6 +58,12 @@ body {
     .header .tabs .selected, .filters {
       background-color: @help-color;
     }
+    .filters {
+      height: 0;
+    }
+    .page {
+      top: 5.5em;
+    }
   }
   &.error {
     .header .tabs .selected, .filters {
@@ -68,7 +73,8 @@ body {
 }
 
 .bootstrap-layer {
-  z-index: 1;
+  z-index: 11;
+  background-color: #f2f2f3;
   position: absolute;
   top: 0;
   bottom: 0;
@@ -77,6 +83,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  padding: 2em;
 }
 
 .bootstrapped .bootstrap-layer {
@@ -103,7 +111,7 @@ body {
   a {
     .button-text-inverse;
     outline: 0;
-    padding-top: 0.25em;
+    padding-top: 3px;
   }
 
   .mm-icon {
@@ -238,13 +246,20 @@ body {
   }
 }
 
+.configuration-form {
+  margin-bottom: 1em;
+  .delete {
+    float: right;
+  }
+}
+
 .header .options .dropdown-menu {
   width: 200px;
   left: auto;
   margin-top: 1.9em;
 }
 
-.slide-back a {
+.filters .navigation a {
   display: inline-block;
   text-align: center;
   color: @grayDark;
@@ -286,7 +301,7 @@ body {
     width: 100%;
   }
 
-  .basic-filters, .slide-back {
+  .basic-filters, .navigation {
     padding-top: 0.2em;
   }
 
@@ -318,10 +333,10 @@ body {
     }
   }
 
-  .slide-back, .reset-filter {
-    line-height: 40px;
+  .navigation span, .reset-filter {
+    line-height: 38px;
     > a {
-      width: 2em;
+      width: 3em;
     }
   }
 
@@ -515,12 +530,23 @@ body {
     li li {
       padding-top: 0.5em;
     }
+    .meta {
+      padding: 1em 0;
+    }
+    h2 {
+      margin-bottom: 0;
+    }
   }
 }
 
-.tasks .inbox-items .mm-badge {
-  padding-top: 0;
-  margin-top: 0;
+.tasks {
+  .inbox-items .mm-badge {
+    padding-top: 0;
+    margin-top: 0;
+  }
+  .item-content .actions a {
+    margin-right: 1em;
+  }
 }
 
 .contacts .message-wrapper .fa {
@@ -763,10 +789,6 @@ a.fa:hover {
 .reports .item-content,
 .tasks .item-content {
 
-  > div {
-    margin-bottom: 5em;
-  }
-
   .meta {
     padding: 2em;
     padding-top: 1em;
@@ -892,7 +914,7 @@ a.fa:hover {
   }
 }
 
-.slide-back {
+.filters .navigation {
   display: none;
 }
 
@@ -921,6 +943,11 @@ a.fa:hover {
     display: flex;
     flex-direction: row;
     justify-content: center;
+
+    .dropdown-menu {
+      overflow-y: auto;
+      max-height: 350px;
+    }
 
     .mm-icon {
       margin: 1.5em 0 0;
@@ -982,6 +1009,10 @@ a.fa:hover {
   border-width: 0 1px;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.clear-both {
+  clear: both;
 }
 
 .no-records {
@@ -1173,13 +1204,19 @@ a.fa:hover {
   margin-bottom: 1em;
 }
 
-.mobile-only {
+.mobile-only, #mobile-detection {
   display: none;
 }
 
 @media (max-width: 767px) {
+  #mobile-detection {
+    display: inline;
+  }
   .item-content {
     border-width: 0;
+    h2 {
+      display: none;
+    }
   }
   .inbox .inbox-items {
     border-left: 0;
@@ -1197,18 +1234,23 @@ a.fa:hover {
     padding: 0;
     padding-bottom: 1em;
     font-size: 0.77em;
-    .slide-back {
+    .navigation {
       display: inline-block;
       float: left;
     }
     .right-pane {
       position: absolute;
       top: 0;
+      .filter-bar-back a {
+        &:hover, &:active {
+          color: #777777;
+        }
+      }
     }
     h2 {
       display: initial;
     }
-    .dropdown, .slide-back .mm-button {
+    .dropdown, .navigation .mm-button {
       vertical-align: top;
     }
     .dropdown {
@@ -1228,6 +1270,14 @@ a.fa:hover {
     }
     .freetext-filter {
       display: none;
+      &.only-filter {
+        display: inline-block;
+        width: auto;
+        padding-right: 3em;
+        input, .btn {
+          height: 2.4em;
+        }
+      }
     }
     .advanced-filter {
       width: 3em;
@@ -1238,6 +1288,9 @@ a.fa:hover {
       .search-pane {
         padding: 1em;
       }
+    }
+    .reset-filter {
+      float: right;
     }
   }
   .header {
@@ -1287,6 +1340,9 @@ a.fa:hover {
   .content {
     .page {
       top: 5.75em;
+      &.help {
+        top: 3.8em;
+      }
     }
     .meta {
       padding-bottom: 0;
@@ -1450,6 +1506,15 @@ a.fa:hover {
     display: initial;
   }
   .desktop-only {
+    display: none;
+  }
+}
+
+#bad-local-date {
+  .full-date {
+    display: inline;
+  }
+  .relative-date-content {
     display: none;
   }
 }

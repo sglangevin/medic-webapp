@@ -1,3 +1,5 @@
+var _ = require('underscore');
+
 (function () {
 
   'use strict';
@@ -33,7 +35,7 @@
           } else {
             $scope.messages.push(updated);
           }
-          if ($scope.selected.id === updated.key[0]) {
+          if ($scope.selected && $scope.selected.id === updated.key[0]) {
             $scope.$broadcast('UpdateContactConversation', { silent: true});
           }
         });
@@ -49,7 +51,7 @@
         }
       };
 
-      var updateContacts = function(options, callback) {
+      var updateConversations = function(options, callback) {
         if (!options.changes) {
           $scope.loading = true;
         }
@@ -77,10 +79,10 @@
       $scope.messages = [];
       $scope.selected = null;
       setMessages();
-      updateContacts({ }, function() {
+      updateConversations({ }, function() {
         if (!$state.params.id &&
             $scope.messages.length &&
-            !$('#back').is(':visible') &&
+            !$scope.isMobile() &&
             $state.is('messages.detail')) {
           $timeout(function() {
             var id = $('.inbox-items li').first().attr('data-record-id');
@@ -96,16 +98,15 @@
       Changes({
         key: 'messages-list',
         callback: function() {
-          updateContacts({ changes: true });
+          updateConversations({ changes: true });
         },
         filter: function(change) {
           if ($scope.filterModel.type !== 'messages') {
             return false;
           }
-          if (change.newDoc) {
-            return change.newDoc.kujua_message || change.newDoc.sms_message;
-          }
-          return false;
+          return change.doc.kujua_message ||
+                 change.doc.sms_message ||
+                 change.deleted;
         }
       });
 

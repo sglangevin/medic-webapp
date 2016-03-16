@@ -5,8 +5,8 @@
   var inboxControllers = angular.module('inboxControllers');
 
   inboxControllers.controller('ReportsAddCtrl', 
-    ['$log', '$scope', '$state', '$q', 'DB', 'Enketo',
-    function ($log, $scope, $state, $q, DB, Enketo) {
+    ['$log', '$scope', '$state', '$q', '$translate', 'DB', 'Enketo', 'Snackbar',
+    function ($log, $scope, $state, $q, $translate, DB, Enketo, Snackbar) {
 
       var getSelected = function() {
         if ($state.params.formId) { // adding
@@ -21,6 +21,16 @@
       $scope.loadingContent = true;
       $scope.contentError = false;
       $scope.saving = false;
+      if ($state.params.reportId || $state.params.formId) {
+        $scope.setCancelTarget(function() {
+          if (!$state.params.reportId) {
+            $scope.query();
+          }
+          $state.go('reports.detail', { id: $state.params.reportId });
+        });
+      } else {
+        $scope.clearCancelTarget();
+      }
 
       getSelected()
         .then(function(doc) {
@@ -49,6 +59,8 @@
           .then(function(doc) {
             $log.debug('saved report', doc);
             $scope.saving = false;
+            $translate($state.params.reportId ? 'report.updated' : 'report.created')
+              .then(Snackbar);
             $state.go('reports.detail', { id: doc._id });
           })
           .catch(function(err) {

@@ -6,16 +6,24 @@
 
   require('./inbox');
 
+  require('./about');
   require('./analytics');
+  require('./analytics-anc');
+  require('./analytics-stock');
+  require('./analytics-targets');
   require('./configuration');
   require('./configuration-export');
   require('./configuration-forms');
   require('./configuration-icons');
+  require('./configuration-permissions');
   require('./configuration-settings-advanced');
   require('./configuration-settings-basic');
+  require('./configuration-targets');
+  require('./configuration-targets-edit.js');
   require('./configuration-translation-application');
   require('./configuration-translation-languages');
   require('./configuration-translation-messages');
+  require('./configuration-user');
   require('./configuration-users');
   require('./contacts');
   require('./contacts-content');
@@ -29,7 +37,6 @@
   require('./edit-user');
   require('./error');
   require('./help');
-  require('./help-search');
   require('./home');
   require('./import-contacts');
   require('./import-translation');

@@ -24,68 +24,35 @@
     "load": "lib/app",
     "modules": ["lib"],
     "attachments": [
+        "static/audio",
         "static/dist",
         "static/fonts",
         "static/img",
-        "templates/403.html",
-        "templates/404.html",
-        "templates/500.html",
-        "templates/base.html",
         "templates/inbox.html",
-        "templates/loader.html",
-        "templates/top_bar.html",
-        "templates/feedback_admin.html",
-        "templates/workflow",
-        "static/js/bootstrap-datetimepicker.js",
-        "static/js/bootstrap.min.js",
-        "static/js/bootstrap-multidropdown.js",
-        "static/js/browser.js",
-        "static/js/jquery.autosize.min.js",
-        "static/js/jquery-ext.js",
-        "static/js/jquery.min.js",
-        "static/js/json2.js",
-        "static/js/underscore.min.js"
+        "ddocs/compiled"
     ],
-    "dust": {
-        "templates": "templates"
-    },
-    "duality": {
-        "base_template": "base.html"
-    },
     "changelog": "Changes.md",
     "node_module_folders" : "api,sentinel",
-    "bundledDependencies": [
-        "packages/underscore"
-    ],
     "dependencies": {
         "modules": null,
         "properties": null,
         "attachments": null,
         "settings": null,
-        "duality": ">=0.0.18",
-        "duality-contrib-session": null,
-        "dust": null,
-        "duality-dust": null,
-        "nodeunit": null,
-        "nodeunit-testrunner": null,
-        "sinon": null,
-        "kujua-branding": ">=0.0.2",
+        "libphonenumber": null,
         "kujua-sms": null,
         "kujua-utils": null,
         "kujua-reporting": null,
-        "libphonenumber": null,
-        "showdown": null,
-        "couch-fakerequest": null,
-        "users": null,
         "cookies": null,
-        "moment": ">=2.5.0",
         "kanso-app-settings": null,
         "app-settings": ">=0.0.2",
-        "js-migrations": ">=1.0.0",
-        "feedback": ">=1.0.0",
-        "couchdb-audit": ">=0.2.0"
+        "url": null,
+        "querystring": null,
+        "duality": null,
+        "kanso-gardener": null
     },
-    "migration_path": "/medic/_design/medic/_rewrite/migration",
+    "postprocessors": {
+        "bundle_templates": "scripts/bundle_templates"
+    },
     "status_path": "/status",
     "user_data": {
         "db_prefix": false,
@@ -1053,6 +1020,63 @@
                         "je:hint": "textarea",
                         "je:textarea": {
                             "rows": 20
+                        }
+                    },
+                    "targets": {
+                        "title": "Targets",
+                        "type": "object",
+                        "properties": {
+                            "enabled": {
+                                "title": "Enabled",
+                                "type": "boolean"
+                            },
+                            "items": {
+                                "title": "Items",
+                                "type": "array",
+                                "default": [],
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "title": "Unique identifier",
+                                            "type": "string"
+                                        },
+                                        "type": {
+                                            "title": "Type of statistic",
+                                            "type": "string",
+                                            "default": "count",
+                                            "description": "Either 'count' or 'percent'"
+                                        },
+                                        "name": {
+                                            "title": "Title",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "content": {
+                                                        "title": "Title Content",
+                                                        "type": "string"
+                                                    },
+                                                    "locale": {
+                                                        "title": "Locale",
+                                                        "type": "string",
+                                                        "default": "en"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "icon": {
+                                            "title": "Icon",
+                                            "type": "string",
+                                            "description": "The id of the configured icon to use"
+                                        },
+                                        "goal": {
+                                            "title": "Goal value",
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
                         }
                     },
                     "schedules": {

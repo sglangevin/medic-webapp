@@ -1,4 +1,5 @@
-var moment = require('moment');
+var moment = require('moment'),
+    _ = require('underscore');
 
 (function () {
 
@@ -50,7 +51,7 @@ var moment = require('moment');
                 }
               });
             } catch(e) {
-              uploadFinished(e);
+              return uploadFinished(e);
             }
             UpdateSettings(settings, { replace: true }, function(err) {
               if (!err) {
@@ -67,13 +68,14 @@ var moment = require('moment');
         _ev.preventDefault();
         $('#forms-upload-form .uploader').click();
       });
-      Settings(function(err, settings) {
-        if (err) {
-          return console.log('Error fetching settings', err);
-        }
-        $scope.forms = settings.forms;
-        $scope.download = generateDownload(settings.forms);
-      });
+      Settings()
+        .then(function(settings) {
+          $scope.forms = settings.forms;
+          $scope.download = generateDownload(settings.forms);
+        })
+        .catch(function(err) {
+          console.log('Error fetching settings', err);
+        });
     }
   ]);
 

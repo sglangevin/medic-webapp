@@ -7,8 +7,9 @@ var _ = require('underscore'),
 
   var inboxServices = angular.module('inboxServices');
 
-  inboxServices.factory('Settings', ['DB', 'Cache',
-    function(DB, Cache) {
+  inboxServices.factory('Settings',
+    ['$q', 'Cache', 'DB', 'Session',
+    function($q, Cache, DB, Session) {
 
       var cache = Cache({
         get: function(callback) {
@@ -16,34 +17,54 @@ var _ = require('underscore'),
             .get('_design/medic')
             .then(function(ddoc) {
               callback(null, _.defaults(ddoc.app_settings, defaults));
-            }).catch(callback);
+            }).catch(function(err) {
+              if (err && err.status === 401) {
+                Session.navigateToLogin();
+              }
+              callback(err);
+            });
         },
         filter: function(doc) {
           return doc._id === '_design/medic';
         }
       });
 
-      return function(callback) {
-        cache(callback);
-      };
-
-    }
-  ]);
-
-  // TODO this service should be removed if there is a simple way to Promisify
-  // the alread-existing service above.
-  // TODO if this service is to be kept, it should probably be using `Cache`
-  inboxServices.factory('SettingsP',
-    ['DB',
-    function(DB) {
       return function() {
-        return DB.get()
-          .get('_design/medic')
-          .then(function(ddoc) {
-            return _.defaults(ddoc.app_settings, defaults);
+        var listeners = {};
+
+        function emit(event, data) {
+          _.each(listeners[event], function(callback) {
+            try {
+              callback(data);
+            } catch(e) {
+              console.error('Error triggering listener callback.', event, data, callback);
+            }
           });
+        }
+
+        var deferred = $q(function(resolve, reject) {
+          cache(function(err, settings) {
+            if (err) {
+              emit('error', err);
+              return reject(err);
+            }
+            emit('change', settings);
+            resolve(settings);
+          });
+        });
+
+        deferred.on = function(event, callback) {
+          if (!listeners[event]) {
+            listeners[event] = [];
+          }
+          listeners[event].push(callback);
+
+          return deferred;
+        };
+
+        return deferred;
       };
     }
   ]);
 
-}()); 
+}());

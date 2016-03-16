@@ -5,6 +5,8 @@ describe('ReportsCtrl controller', function() {
   var createController,
       scope,
       report,
+      DB,
+      LiveList,
       UserDistrict,
       MarkRead,
       Search,
@@ -26,12 +28,20 @@ describe('ReportsCtrl controller', function() {
     scope.setFilterQuery = function() {};
     scope.reports = [ report, { _id: 'a' } ];
     scope.clearSelected = function() {};
+    scope.setBackTarget = function() {};
+    scope.isMobile = function() {
+      return false;
+    };
 
     UserDistrict = function() {
       return { 
         then: function() {}
       };
     };
+
+    DB = {};
+
+    LiveList = {};
 
     MarkRead = function() {};
 
@@ -69,8 +79,9 @@ describe('ReportsCtrl controller', function() {
         'MessageState': {},
         'EditGroup': {},
         'FormatDataRecord': FormatDataRecord,
-        'Settings': {},
-        'DB': {}
+        'Settings': KarmaUtils.nullPromise(),
+        'DB': DB,
+        'LiveList': LiveList
       });
     };
   }));
@@ -78,50 +89,6 @@ describe('ReportsCtrl controller', function() {
   it('set up controller', function() {
     createController();
     chai.expect(scope.filterModel.type).to.equal('reports');
-  });
-
-  it('updated reports when changed', function() {
-
-    Search = function($scope, options, callback) {
-      chai.expect(options.silent).to.equal(true);
-      callback(null, [
-        {
-          _id: 'a',
-          _rev: 2,
-          shared: 'z',
-          unique: 'w'
-        },
-        {
-          _id: 'b'
-        }
-      ]);
-    };
-    
-    createController();
-
-    scope.selected = { _id: 'a' };
-    scope.reports = [
-      {
-        _id: 'a',
-        _rev: 1,
-        shared: 'x',
-        existing: 'y'
-      }
-    ];
-    changesCallback({ id: 'a' });
-
-    chai.expect(scope.reports).to.deep.equal([
-      {
-        _id: 'a',
-        _rev: 2,
-        shared: 'z',
-        unique: 'w',
-        existing: 'y'
-      },
-      {
-        _id: 'b'
-      }
-    ]);
   });
 
 });

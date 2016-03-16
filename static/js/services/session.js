@@ -6,8 +6,8 @@ var COOKIE_NAME = 'userCtx';
 
   var inboxServices = angular.module('inboxServices');
 
-  inboxServices.factory('Session', ['$window', 'ipCookie', 'KansoPackages', 'DbNameService',
-    function($window, ipCookie, KansoPackages, DbNameService) {
+  inboxServices.factory('Session', ['$window', 'ipCookie', 'KansoPackages', 'DbNameService', '$log',
+    function($window, ipCookie, KansoPackages, DbNameService, $log) {
 
       var getUserCtx = function() {
         return ipCookie(COOKIE_NAME);
@@ -22,6 +22,7 @@ var COOKIE_NAME = 'userCtx';
       };
 
       var navigateToLogin = function() {
+        $log.warn('User must reauthenticate');
         ipCookie.remove(COOKIE_NAME);
         waitForAppCache(function() {
           $window.location.href = '/' + DbNameService() + '/login' +
@@ -33,7 +34,11 @@ var COOKIE_NAME = 'userCtx';
         KansoPackages.session.logout(navigateToLogin);
       };
 
-      var checkCurrentSession = function(userCtx) {
+      var checkCurrentSession = function() {
+        var userCtx = getUserCtx();
+        if (!userCtx || !userCtx.name) {
+          return logout();
+        }
         KansoPackages.session.info(function(err, response) {
           if (err && err.status === 401) {
             // connected to the internet but no session on the server
@@ -47,22 +52,22 @@ var COOKIE_NAME = 'userCtx';
 
       var listenForSessionChanges = function() {
         // listen for logout events
-        KansoPackages.session.on('change', function(remoteUserCtx) {
-          if (!remoteUserCtx.name) {
-            navigateToLogin();
-          }
-        });
+        KansoPackages.session.on('change', checkCurrentSession);
       };
 
       return {
         logout: logout,
+
+        /**
+         * Get the user context of the logged in user. This will return
+         * null if the user is not logged in.
+         */
         userCtx: getUserCtx,
+
+        navigateToLogin: navigateToLogin,
+
         init: function() {
-          var userCtx = getUserCtx();
-          if (!userCtx || !userCtx.name) {
-            return logout();
-          }
-          checkCurrentSession(userCtx);
+          checkCurrentSession();
           listenForSessionChanges();
         }
       };

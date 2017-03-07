@@ -2,11 +2,11 @@
  * This has to run in the shows/list/update context for 'this' to work
  * Specifically, needs patched duality/core.js to have correct context
  */
-exports.getAppInfo = function(req) {
-    var defaults = require('views/lib/app_settings'),
-        app_settings = getSettings.call(this, req),
-        _ = _ || require('underscore'),
-        url = url || require('url');
+exports.getAppInfo = function() {
+    var _ = _ || require('underscore'),
+        url = url || require('url'),
+        cookies = cookies || require('cookies'),
+        app_settings = getSettings.call(this);
 
     // use mustache syntax
     _.templateSettings = {
@@ -28,7 +28,7 @@ exports.getAppInfo = function(req) {
      *
      * returns object
      */
-    function getSettings(req) {
+    function getSettings() {
         var settings = {};
 
         if (this.app_settings) {
@@ -46,37 +46,16 @@ exports.getAppInfo = function(req) {
             ).settings;
         }
 
-        // add defaults to settings if needed
-        for (var k in defaults) {
-            if (typeof defaults[k] !== 'undefined') {
-                if (typeof settings[k] === 'undefined') {
-                    settings[k] = defaults[k];
-                }
-            }
-        }
-
-        // add default translations also if needed
-        for (var i in defaults.translations) {
-            var d = defaults.translations[i];
-            var found = false;
-            for (var i in settings.translations) {
-                var t = settings.translations[i];
-                if (t.key === d.key) {
-                    found = true;
-                }
-            }
-            if (!found) {
-                if (settings.translations) {
-                    settings.translations.push(d);
-                } else {
-                    settings.translations = [d];
-                }
-            }
-            found = false;
-        }
-
         return settings;
     }
+
+    function getLocale() {
+        var locale;
+        if (typeof window !== 'undefined') {
+          locale = cookies.readBrowserCookie('locale');
+        }
+        return locale || app_settings.locale;
+    };
 
     /*
      * Value is object with locale strings, e.g.
@@ -117,6 +96,14 @@ exports.getAppInfo = function(req) {
             return value;
         }
 
+        locale = locale || getLocale();
+
+        var test = false;
+        if (locale === 'test') {
+            test = true;
+            locale = 'en';
+        }
+
         var result =
 
             // 1) Look for the requested locale
@@ -135,6 +122,10 @@ exports.getAppInfo = function(req) {
             // 5) Look for the first value
             || value[_.first(_.keys(value))];
 
+        if (test) {
+            result = '-' + result + '-';
+        }
+
         return result;
     }
 
@@ -151,12 +142,11 @@ exports.getAppInfo = function(req) {
     function translate(translations, key, locale, ctx) {
 
         var value,
-            ctx = ctx || {},
-            locale = locale || app_settings.locale;
+            ctx = ctx || {};
 
         if (_.isObject(locale)) {
             ctx = locale;
-            locale = app_settings.locale;
+            locale = null;
         }
 
         if (_.isObject(key)) {
@@ -172,26 +162,30 @@ exports.getAppInfo = function(req) {
         // underscore templates will return ReferenceError if all variables in
         // template are not defined.
         try {
-            return _.template(value, ctx);
+            return _.template(value)(ctx);
         } catch(e) {
             return value;
         }
     }
 
-    var muvuku = url.parse(app_settings.muvuku_webapp_url, true);
-    muvuku.search = null;
-    muvuku.query._sync_url = require('duality/utils').getBaseURL() + '/add';
+    if (app_settings.muvuku_webapp_url) {
+        var muvuku = url.parse(app_settings.muvuku_webapp_url, true);
+        muvuku.search = null;
+        muvuku.query._sync_url = require('duality/utils').getBaseURL() + '/add';
 
-    if (app_settings.gateway_number) {
-        muvuku.query._gateway_num = app_settings.gateway_number;
+        if (app_settings.gateway_number) {
+            muvuku.query._gateway_num = app_settings.gateway_number;
+        }
+
+        app_settings.muvuku_webapp_url = url.format(muvuku);
     }
 
-    app_settings.muvuku_webapp_url = url.format(muvuku);
     app_settings.sha = this.kanso && this.kanso.git && this.kanso.git.commit;
     app_settings.translations = app_settings.translations || [];
     app_settings.translate = _.partial(translate, app_settings.translations);
     app_settings.getMessage = getMessage;
     app_settings.getForm = getForm;
+    app_settings.getLocale = getLocale;
 
     return app_settings;
 };

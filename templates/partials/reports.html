@@ -1,7 +1,13 @@
-<div class="inner">
-  <div class="inbox">
-    {>"partials/reports_list.html"/}
-    {>"partials/reports_content.html"/}
+<div class="filters">
+  <div class="inner">
+    <ng-include src="'templates/partials/reports_filters.html'"></ng-include>
+    <ng-include src="'templates/partials/filters/navigation.html'"></ng-include>
   </div>
 </div>
-{>"partials/modal_edit_message_group.html"/}
+
+<div class="inner">
+  <div class="inbox page">
+    <ng-include src="'templates/partials/reports_list.html'"></ng-include>
+    <ui-view name="content"/>
+  </div>
+</div>

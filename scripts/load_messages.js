@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 var querystring = require('querystring'),
-    http = require('http'),
     url = require('url'),
     csv = require('csv'),
     fs = require('fs'),
@@ -98,6 +97,8 @@ function postMessage(data) {
     options.headers = options.headers ? options.headers : {};
     options.headers["Content-Type"] = "application/x-www-form-urlencoded";
     options.method = 'POST';
+    
+    var http = options.protocol === 'https:' ? require('https') : require('http');
 
     var req = http.request(options, function(res) {
       res.setEncoding('utf8');

@@ -1,80 +1,86 @@
-var _ = require('underscore'),
-    utils = require('kujua-utils');
+var utils = require('kujua-utils');
 
 (function () {
 
   'use strict';
 
   var inboxServices = angular.module('inboxServices');
-  
-  inboxServices.factory('UserDistrict', ['db', 'UserCtxService',
-    function(db, UserCtxService) {
-      return function(callback) {
-        var userCtx = UserCtxService();
-        if (!userCtx.name) {
-          return callback('Not logged in');
-        }
-        if (utils.isUserAdmin(userCtx)) {
-          return callback();
-        }
-        if (utils.isUserDistrictAdmin(userCtx)) {
-          return utils.checkDistrictConstraint(userCtx, db, callback);
-        }
-        callback('The administrator needs to give you additional privileges to use this site.');
-      };
-    }
-  ]);
 
-  var getUserResourceUrl = function(userCtx) {
-    return '/_users/org.couchdb.user%3A' + userCtx.name;
+  var getWithRemoteFallback = function(DB, id) {
+    return DB()
+      .get(id)
+      .catch(function() {
+        // might be first load - try the remote db
+        return DB({ remote: true }).get(id);
+      });
   };
 
-  inboxServices.factory('User', ['$resource', 'UserCtxService',
-    function($resource, UserCtxService) {
-      return $resource(getUserResourceUrl(UserCtxService()), {}, {
-        query: {
-          method: 'GET',
-          isArray: false,
-          cache: true
-        }
-      });
-    }
-  ]);
+  // If the user has role district_admin, returns their facility_id.
+  // If the user is admin, return undefined.
+  // Else throw error.
+  inboxServices.factory('UserDistrict',
+    function(
+      $q,
+      DB,
+      Session
+    ) {
+      'ngInject';
 
-  inboxServices.factory('UpdateUser', ['$cacheFactory', 'db', 'User', 'UserCtxService',
-    function($cacheFactory, db, User, UserCtxService) {
-      return function(updates, callback) {
-        User.query(function(user) {
-          var updated = _.extend(user, updates);
-          db.use('_users').saveDoc(updated, function(err) {
-            var cachename = getUserResourceUrl(UserCtxService());
-            $cacheFactory.get('$http').remove(cachename);
-            callback(err, updated);
-          });
-        });
-      };
-    }
-  ]);
-
-  inboxServices.factory('Language', ['$q', 'User', 'Settings',
-    function($q, User, Settings) {
       return function() {
-        var deferred = $q.defer();
-        User.query(function(res) {
-          if (res && res.language) {
-            deferred.resolve(res.language);
-          } else {
-            Settings(function(err, res) {
-              if (err) {
-                return deferred.reject(err);
-              }
-              deferred.resolve(res.locale || 'en');
-            });
-          }
-        });
-        return deferred.promise;
+        var userCtx = Session.userCtx();
+        if (!userCtx || !userCtx.name) {
+          return $q.reject(new Error('Not logged in'));
+        }
+        if (Session.isAdmin()) {
+          return $q.resolve();
+        }
+        if (!utils.isUserDistrictAdmin(userCtx)) {
+          return $q.reject(new Error('The administrator needs to give you additional privileges to use this site.'));
+        }
+        return getWithRemoteFallback(DB, 'org.couchdb.user:' + userCtx.name)
+          .then(function(user) {
+            if (!user.facility_id) {
+              return $q.reject(new Error('No district assigned to district admin.'));
+            }
+            return user.facility_id;
+          })
+          .then(function(facilityId) {
+            // ensure the facility exists
+            return getWithRemoteFallback(DB, facilityId)
+              .then(function() {
+                return facilityId;
+              });
+          });
       };
     }
-  ]);
+  );
+
+  inboxServices.factory('UserSettings',
+    function(
+      $q,
+      DB,
+      Session
+    ) {
+      'ngInject';
+      return function() {
+        var userCtx = Session.userCtx();
+        if (!userCtx) {
+          return $q.reject(new Error('UserCtx not found'));
+        }
+        return getWithRemoteFallback(DB, 'org.couchdb.user:' + userCtx.name);
+      };
+    }
+  );
+
+  inboxServices.factory('Admins',
+    function(
+      $http
+    ) {
+      'ngInject';
+      return function() {
+        return $http.get('/_config/admins', { cache: true });
+      };
+    }
+  );
 
 }());

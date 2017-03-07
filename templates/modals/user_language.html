@@ -1,0 +1,16 @@
+<mm-modal
+  status="status"
+  id="'user-language'"
+  title-key="'Select a language'"
+  submit-key="'Submit'"
+  submitting-key="'Submitting'"
+  on-cancel="cancel()"
+  on-submit="submit()"
+  disable-submit="!selectedLanguage"
+>
+  <p class="horizontal-options locale">
+    <a ng-repeat="language in enabledLocales track by language.code" ng-class="{selected: language.code === selectedLanguage}" ng-click="changeLanguage(language.code)">
+      <span class="rectangle" ng-bind="language.name"></span>
+    </a>
+  </p>
+</mm-modal>

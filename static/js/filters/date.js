@@ -1,55 +1,119 @@
+var _ = require('underscore'),
+    moment = require('moment');
+
 (function () {
 
   'use strict';
 
   var module = angular.module('inboxFilters');
 
-  var getRelativeDate = function(date, FormatDate, content) {
-    content = content || '';
-    if (!date) {
-      return '<span>' + content + '</span>';
+  var getAbsoluteDateString = function(date, options) {
+    if (options.withoutTime) {
+      return options.FormatDate.date(date);
     }
-    return  content +
-      '<span class="relative-date" title="' + FormatDate.datetime(date) + '">' +
-      '<span class="relative-date-content">' + FormatDate.relative(date) + '</span>' +
-      '</span>';
+    return options.FormatDate.datetime(date);
+  };
+
+  var getRelativeDateString = function(date, options) {
+    if (options.age) {
+      return options.FormatDate.age(date);
+    }
+    return options.FormatDate.relative(date, options);
+  };
+
+  var getRelativeDate = function(date, options) {
+    options = options || {};
+    _.defaults(options, { prefix: '', suffix: '' });
+    if (!date) {
+      return '<span>' + options.prefix + options.suffix + '</span>';
+    }
+    var momentDate = moment(date);
+    var absolute = getAbsoluteDateString(momentDate, options);
+    var relative = getRelativeDateString(momentDate, options);
+    var classes = ['relative-date'];
+    var now = moment();
+    if (options.withoutTime) {
+      now = now.startOf('day');
+    }
+    if (momentDate.isBefore(now)) {
+      classes.push('past');
+    } else {
+      classes.push('future');
+    }
+    return options.prefix +
+           '<span class="' + classes.join(' ') + '" title="' + absolute + '">' +
+             '<span class="relative-date-content">' + relative + '</span>' +
+           '</span>' +
+           options.suffix;
   };
 
   var getTaskDate = function(task) {
-    if (task.state === 'scheduled') {
-      return task.due;
-    }
-    if (task.state_history && task.state_history.length) {
-      return task.state_history[task.state_history.length - 1].timestamp;
+    var current = task.state_history &&
+                  task.state_history.length &&
+                  task.state_history[task.state_history.length - 1];
+    if (current) {
+      if (current.state === 'scheduled') {
+        return task.due;
+      }
+      return current.timestamp;
     }
     return task.due || task.reported_date;
   };
 
-  module.filter('autoreply', ['FormatDate',
-    function (FormatDate) {
+  var getState = function(state, translate) {
+    return '<span class="state ' + state + '">' + translate('state.' + state) + '</span>';
+  };
+
+  module.filter('autoreply', ['FormatDate', 'translateFilter',
+    function (FormatDate, translateFilter) {
       return function (task) {
         if (!task || !task.state) {
           return '';
         }
-        var content = '<span class="state ' + task.state + '">' + task.state + '</span>&nbsp;' +
-          '<span class="autoreply" title="' + task.messages[0].message +
-          '"><span class="autoreply-content">autoreply</span></span>&nbsp';
-        return getRelativeDate(getTaskDate(task), FormatDate, content);
+        var content = getState(task.state, translateFilter) + '&nbsp;' +
+          '<span class="autoreply" title="' + task.messages[0].message + '">' +
+            '<span class="autoreply-content">' + translateFilter('autoreply') + '</span>' +
+          '</span>&nbsp';
+        return getRelativeDate(getTaskDate(task), {
+          FormatDate: FormatDate,
+          prefix: content
+        });
       };
     }
   ]);
 
-  module.filter('state', ['FormatDate',
-    function (FormatDate) {
+  var getRecipient = function(task, translateFilter) {
+    if (task && task.messages && task.messages.length && task.messages[0].to) {
+      return '<span class="recipient">&nbsp;' +
+               translateFilter('to recipient', { recipient: task.messages[0].to }) +
+             '</span>';
+    }
+    return '';
+  };
+
+  module.filter('state', ['FormatDate', 'translateFilter',
+    function (FormatDate, translateFilter) {
       return function (task) {
         if (!task) {
           return '';
         }
-        var state = (task.state || 'received');
-        var content = '<span class="state ' + state + '">' + state + '</span>&nbsp;';
-        return getRelativeDate(
-          getTaskDate(task), FormatDate, content
-        );
+        return getRelativeDate(getTaskDate(task), {
+          FormatDate: FormatDate,
+          prefix: getState(task.state || 'received', translateFilter) + '&nbsp;',
+          suffix: getRecipient(task, translateFilter)
+        });
+      };
+    }
+  ]);
+
+  module.filter('age', ['FormatDate',
+    function (FormatDate) {
+      return function (date) {
+        return getRelativeDate(date, {
+          FormatDate: FormatDate,
+          withoutTime: true,
+          age: true
+        });
       };
     }
   ]);
@@ -57,7 +121,18 @@
   module.filter('relativeDate', ['FormatDate',
     function (FormatDate) {
       return function (date) {
-        return getRelativeDate(date, FormatDate);
+        return getRelativeDate(date, { FormatDate: FormatDate });
+      };
+    }
+  ]);
+
+  module.filter('relativeDay', ['FormatDate',
+    function (FormatDate) {
+      return function (date) {
+        return getRelativeDate(date, {
+          FormatDate: FormatDate,
+          withoutTime: true
+        });
       };
     }
   ]);
@@ -84,8 +159,8 @@
         if (!date) {
           return '';
         }
-        return  '<div class="relative-date-content">' + FormatDate.relative(date) + '</div>' +
-                '<div class="full-date">' + FormatDate.datetime(date) + '</div>';
+        return '<div class="relative-date-content">' + FormatDate.relative(date) + '</div>' +
+               '<div class="full-date">' + FormatDate.datetime(date) + '</div>';
       };
     }
   ]);
@@ -104,7 +179,7 @@
           classes.push('approximate');
         }
         var attr = classes.length ? ' class="' + classes.join(' ') + '"' : '';
-        return  '<span' + attr + '>' + weeks.number + '</span>';
+        return '<span' + attr + '>' + weeks.number + '</span>';
       };
     }
   ]);

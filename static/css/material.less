@@ -1,0 +1,173 @@
+.material {
+  padding: 0.5em;
+  .card {
+    border: 1px solid @seperator-color;
+    border-bottom: 0;
+    background-color: white;
+  }
+  .row {
+    border-bottom: 1px solid @seperator-color;
+    margin: 0;
+    .cell {
+      padding: 10px 15px;
+    }
+    &.flex {
+      display: flex;
+      flex-wrap: wrap;
+    }
+  }
+  .card-title {
+    margin-bottom: 5px;
+    margin-top: 10px;
+    padding-right: 15px;
+    padding-left: 15px;
+    div, h3 {
+      display: inline-block;
+    }
+    i {
+      font-size: 2.1em;
+    }
+    h3,
+    h4 {
+      padding-left: 0;
+      margin-top: 0;
+      margin-bottom: 0;
+      padding-right: 10px;
+    }
+    h3 {
+      font-size: 1.4em
+    }
+  }
+  .tasks-title {
+    margin-top: 20px;
+    margin-bottom: 5px;
+  }
+  .tasks-count, .tasks-title {
+    text-align: right;
+  }
+  h2 {
+    margin-top: 0;
+  }
+  .field-list {
+    label {
+      color: @label-color;
+      font-style: italic;
+      font-weight: normal;
+    }
+    li {
+      margin-bottom: 1em;
+    }
+  }
+  .action-list {
+    border-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    clear: both;
+    a.cell {
+      display: inline-block;
+      width: 100%;
+      padding-left: 10px;
+      border-left: 5px solid transparent;
+      color: inherit;
+      &:hover {
+        text-decoration: none;
+      }
+      .cell-label {
+        font-size: 1.3em;
+      }
+    }
+    .action-icon {
+      float: left;
+    }
+    &.persons .cell {
+      display: flex;
+      align-items: center;
+    }
+  }
+  .col-xs-1,
+  .col-xs-2,
+  .col-xs-3,
+  .col-xs-4,
+  .col-xs-5,
+  .col-xs-6,
+  .col-xs-7,
+  .col-xs-8,
+  .col-xs-9,
+  .col-xs-10,
+  .col-xs-11,
+  .col-xs-12,
+  .col-sm-1,
+  .col-sm-2,
+  .col-sm-3,
+  .col-sm-4,
+  .col-sm-5,
+  .col-sm-6,
+  .col-sm-7,
+  .col-sm-8,
+  .col-sm-9,
+  .col-sm-10,
+  .col-sm-11,
+  .col-sm-12 {
+    padding: 0;
+  }
+}
+
+#snackbar {
+  position: fixed;
+  bottom: 0;
+  cursor: default;
+  z-index: 10000;
+  will-change: transform;
+  transform: translate3d(0, 50px, 0) rotateZ(0deg);
+  transition: 0.25s linear;
+  max-height: 50px;
+  left: 0px;
+  right: 0px;
+  text-align: center;
+  pointer-events: none;
+  .snackbar-content {
+    pointer-events: initial;
+    text-align: left;
+    display: inline-block;
+    padding: 14px 24px;
+    vertical-align: middle;
+    min-width: 288px;
+    max-width: 568px;
+    border-radius: 2px 2px 0 0;
+    background-color: @medic-slate-color;
+    color: #FFFFFF;
+    margin: 0 auto;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  &.active {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (max-width: 767px) {
+  .material {
+    .action-list {
+      margin-left: -15px;
+      margin-right: -15px;
+    }
+    .card-title .xs-block {
+      display: block;
+    }
+    .meta .card .row {
+      border-bottom: 0;
+      .col-sm-3,
+      .col-sm-12 {
+        border-bottom: 1px solid @seperator-color;
+      }
+    }
+  }
+  #snackbar .snackbar-content {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    left: 0;
+    border-radius: 0;
+  }
+}

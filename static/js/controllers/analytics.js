@@ -1,5 +1,4 @@
-var _ = require('underscore'),
-    tour = require('../modules/tour');
+var _ = require('underscore');
 
 (function () {
 
@@ -7,17 +6,8 @@ var _ = require('underscore'),
 
   var inboxControllers = angular.module('inboxControllers');
 
-  var findSelectedModule = function(id, modules) {
-    if (!modules.length) {
-      return undefined;
-    }
-    if (!id) {
-      return modules[0];
-    }
-    return _.findWhere(modules, { id: id });
-  };
-
   inboxControllers.controller('AnalyticsCtrl',
+<<<<<<< HEAD
     ['$scope', '$route', '$location', '$log', 'Settings', 'AnalyticsModules',
     function ($scope, $route, $location, $log, Settings, AnalyticsModules) {
 
@@ -40,14 +30,59 @@ var _ = require('underscore'),
         if ($route.current.params.facility) {
           $scope.filterModel.selectedFacility = $scope.facilitiesLookup[$route.current.params.facility];
         }
-        $scope.loading = false;
-        if ($scope.filterModel.module) {
-          $scope.filterModel.module.render($scope);
+=======
+    function (
+      $scope,
+      $state,
+      $stateParams,
+      $timeout,
+      AnalyticsModules,
+      Tour
+    ) {
+      'ngInject';
+
+      $scope.analyticsModules = [];
+
+      $scope.loading = true;
+
+      $scope.setSelectedModule = function(module) {
+        $scope.selected = module;
+      };
+      $scope.setSelectedModule();
+      $scope.clearSelected();
+
+      AnalyticsModules().then(function(modules) {
+        if ($state.is('analytics')) {
+          if (modules.length === 1) {
+            // timeout so this transition finishes before starting the next one
+            $timeout(function() {
+              $state.go(modules[0].state, { }, { location: 'replace' });
+            });
+            return;
+          }
+        } else {
+          $scope.setSelectedModule(_.findWhere(modules, {
+            state: $state.current.name
+          }));
         }
+
+>>>>>>> medic/master
+        $scope.loading = false;
+        $scope.analyticsModules = modules;
       });
-      tour.start($route.current.params.tour);
-      $location.url($location.path());
+
+      if ($stateParams.tour) {
+        Tour.start($stateParams.tour);
+      }
+
+      $scope.loadPatient = function(id) {
+        $state.go('reports.detail', { query: 'patient_id:' + id });
+      };
+
+      $scope.loadContact = function(id) {
+        $state.go('reports.detail', { query: 'contact:' + id });
+      };
     }
-  ]);
+  );
 
 }());

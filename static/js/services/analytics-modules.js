@@ -1,6 +1,10 @@
 var _ = require('underscore'),
+<<<<<<< HEAD
     reporting = require('kujua-reporting/shows'),
     moment = require('moment');
+=======
+    ANC_FORM_CONFIGURATION_PROPERTIES = [ 'registration', 'registrationLmp', 'visit', 'delivery', 'flag' ];
+>>>>>>> medic/master
 
 (function () {
 
@@ -9,6 +13,7 @@ var _ = require('underscore'),
   var inboxServices = angular.module('inboxServices');
 
   inboxServices.factory('AnalyticsModules',
+<<<<<<< HEAD
     ['$resource', '$log', 'UserDistrict',
     function($resource, $log, UserDistrict) {
 
@@ -29,10 +34,31 @@ var _ = require('underscore'),
           function(err) {
             $log.error('Error requesting module', err);
             callback(err);
+=======
+    function(
+      $log,
+      $q,
+      ScheduledForms,
+      Settings
+    ) {
+
+      'ngInject';
+
+      var getAncModule = function(settings) {
+        return {
+          label: 'Antenatal Care',
+          state: 'analytics.anc',
+          available: function() {
+            return ANC_FORM_CONFIGURATION_PROPERTIES.every(function(prop) {
+              var formCode = settings.anc_forms[prop];
+              return formCode && settings.forms && settings.forms[formCode];
+            });
+>>>>>>> medic/master
           }
-        );
+        };
       };
 
+<<<<<<< HEAD
       return function(settings) {
         var modules = [
           {
@@ -241,13 +267,53 @@ var _ = require('underscore'),
                 );
               }
             }
+=======
+      var getTargetsModule = function(settings) {
+        return {
+          label: 'analytics.targets',
+          state: 'analytics.targets',
+          available: function() {
+            return settings.tasks &&
+                   settings.tasks.targets &&
+                   settings.tasks.targets.enabled;
           }
-        ];
-        return _.filter(modules, function(module) {
+        };
+      };
+
+      var getReportingRatesModule = function(settings, scheduledForms) {
+        return {
+          label: 'Reporting Rates',
+          state: 'analytics.reporting',
+          available: function() {
+            return scheduledForms.length;
+>>>>>>> medic/master
+          }
+        };
+      };
+
+      var getModules = function(settings, scheduledForms) {
+        return _.filter([
+          getAncModule(settings, scheduledForms),
+          getReportingRatesModule(settings, scheduledForms),
+          getTargetsModule(settings, scheduledForms)
+        ], function(module) {
           return module.available();
         });
       };
+
+      return function() {
+        return $q.all([ Settings(), ScheduledForms() ])
+          .then(function(results) {
+            var modules = getModules(results[0], results[1]);
+            $log.debug('AnalyticsMobules. Enabled modules: ', _.pluck(modules, 'label'));
+            return modules;
+          });
+      };
     }
+<<<<<<< HEAD
   ]);
+=======
+  );
+>>>>>>> medic/master
 
 }());

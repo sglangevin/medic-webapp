@@ -49,11 +49,11 @@ var getDataRecord = function(options, form_data) {
     var record = {
         _id: req.uuid,
         type: 'data_record',
-        from: libphonenumber.format(utils.info, options.from) || options.from,
+        from: libphonenumber.normalize(utils.info, options.from) || options.from,
         form: form,
-        related_entities: {clinic: null},
         errors: [],
         tasks: [],
+        fields: {},
         reported_date: new Date().valueOf(),
         // keep POST data part of record
         sms_message: options
@@ -71,7 +71,7 @@ var getDataRecord = function(options, form_data) {
 
         for (var k in def.fields) {
             var field = def.fields[k];
-            smsparser.merge(form, k.split('.'), record, form_data);
+            smsparser.merge(form, k.split('.'), record.fields, form_data);
         }
         var errors = validate.validate(def, form_data);
         errors.forEach(function(err) {
@@ -263,9 +263,15 @@ var add_sms = exports.add_sms = function(doc, request) {
     };
     options = _.extend(req.form, options);
 
-    // if locale was not passed in form data then check query string
-    if (!options.locale) {
-        options.locale = (req.query && req.query.locale) || utils.info.locale;
+    /**
+     * If a locale value was passed in using form or query string then save
+     * that to the sms_message data, otherwise leave locale undefined.  The
+     * sms_message.locale property can be used as an override when supporting
+     * responses in multiple languages based on a gateway configuration or a
+     * special form field `locale`.
+     */
+    if (!options.locale && (req.query && req.query.locale)) {
+        options.locale = req.query.locale;
     }
 
     var def = utils.info.getForm(options.form),
@@ -334,7 +340,7 @@ exports.update_message_task = function(doc, request) {
     if (!data.message_id) {
         return fail('Message id required');
     }
-    msg = kutils.getTask(data.message_id, doc);
+    msg = getTask(data.message_id, doc);
     if (!data.message_id || !msg) {
         return fail('Message not found: ' + data.message_id);
     }
@@ -343,4 +349,27 @@ exports.update_message_task = function(doc, request) {
         doc,
         JSON.stringify(getDefaultResponse(doc))
     ];
+};
+
+
+/*
+ * Return task object that matches message uuid or a falsey value if match
+ * fails.
+ */
+var getTask = function(uuid, doc) {
+    for (var i in doc.tasks) {
+        for (var j in doc.tasks[i].messages) {
+            if (uuid === doc.tasks[i].messages[j].uuid) {
+                return doc.tasks[i];
+            }
+        }
+    };
+    for (var i in doc.scheduled_tasks) {
+        for (var j in doc.scheduled_tasks[i].messages) {
+            if (uuid === doc.scheduled_tasks[i].messages[j].uuid) {
+                return doc.scheduled_tasks[i];
+            }
+        }
+    };
+    return;
 };

@@ -6,13 +6,25 @@ var _ = require('underscore');
 
   var inboxServices = angular.module('inboxServices');
 
+  var getTo = function(dataRecord, group) {
+    var to;
+    if (group.rows &&
+        group.rows.length &&
+        group.rows[0].messages &&
+        group.rows[0].messages.length) {
+      to = group.rows[0].messages[0].to;
+    }
+    return to || dataRecord.from;
+  };
+
   var add = function(dataRecord, group) {
     var changed = false;
+    var to = getTo(dataRecord, group);
     _.each(group.rows, function(updatedTask) {
       if (updatedTask.added) {
         changed = true;
         dataRecord.scheduled_tasks.push({
-          messages: [{}],
+          messages: [{ to: to }],
           state: 'scheduled',
           group: group.number,
           type: group.type
@@ -54,23 +66,24 @@ var _ = require('underscore');
     return changed;
   };
 
-  inboxServices.factory('EditGroup', ['db',
-    function(db) {
-      return function(recordId, group, callback) {
-        db.getDoc(recordId, function(err, dataRecord) {
-          if (err) {
-            return callback(err);
-          }
-          var additions = add(dataRecord, group);
-          var mutations = update(dataRecord, group);
-          var deletions = remove(dataRecord, group);
-          if (!additions && !mutations && !deletions) {
-            return callback(null, dataRecord);
-          }
-          db.saveDoc(dataRecord, function(err) {
-            callback(err, dataRecord);
+  inboxServices.factory('EditGroup', ['DB',
+    function(DB) {
+      return function(recordId, group) {
+        return DB()
+          .get(recordId)
+          .then(function(dataRecord) {
+            var additions = add(dataRecord, group);
+            var mutations = update(dataRecord, group);
+            var deletions = remove(dataRecord, group);
+            if (additions || mutations || deletions) {
+              return DB().put(dataRecord)
+                .then(function() {
+                  return dataRecord;
+                });
+            } else {
+              return dataRecord;
+            }
           });
-        });
       };
     }
   ]);

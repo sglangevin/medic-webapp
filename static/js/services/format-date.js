@@ -6,44 +6,93 @@ var moment = require('moment');
 
   var inboxServices = angular.module('inboxServices');
 
-  inboxServices.factory('FormatDate', ['Settings',
-    function(Settings) {
+  inboxServices.factory('FormatDate',
+    function(
+      $log,
+      $translate,
+      MomentLocaleData,
+      Settings
+    ) {
 
-      var config;
-      var running = false;
+      'ngInject';
+
+      var config = {
+        date: 'DD-MMM-YYYY',
+        datetime: 'DD-MMM-YYYY HH:mm:ss',
+        ageBreaks: [
+          { unit: 'years', key: { singular: 'y', plural: 'yy' }, min: 1 },
+          { unit: 'months', key: { singular: 'M', plural: 'MM' }, min: 1 },
+          { unit: 'days', key: { singular: 'd', plural: 'dd' }, min: 0 }
+        ]
+      };
+
+      Settings()
+        .then(function(res) {
+          config.date = res.date_format;
+          config.datetime = res.reported_date_format;
+        })
+        .catch(function(err) {
+          $log.error('Error fetching settings', err);
+        });
 
       var format = function(date, key) {
-        if (config) {
-          return moment(date).format(config[key]);
+        return moment(date).format(config[key]);
+      };
+
+      var getDateDiff = function(date) {
+        var now = moment().startOf('day'); // remove the time component
+        for (var i = 0; i < config.ageBreaks.length; i++) {
+          var ageBreak = config.ageBreaks[i];
+          var diff = date.diff(now, ageBreak.unit);
+          if (Math.abs(diff) > ageBreak.min) {
+            return { quantity: diff, key: ageBreak.key };
+          }
         }
-        if (!running) {
-          running = true;
-          Settings(function(err, res) {
-            if (err) {
-              return console.log('Error fetching settings', err);
-            }
-            config = {
-              datetime: res.reported_date_format,
-              date: res.date_format
-            };
-          });
+        return { quantity: 0, key: { singular: 'd', plural: 'dd' } };
+      };
+
+      var relativeDate = function(date, options) {
+        options = options || {};
+        var diff = getDateDiff(moment(date).startOf('day'));
+        if (options.humanize) {
+          if (diff.quantity === 0) {
+            return $translate.instant('today');
+          }
+          if (diff.quantity === 1) {
+            return $translate.instant('tomorrow');
+          }
+          if (diff.quantity === -1) {
+            return $translate.instant('yesterday');
+          }
         }
+        var quantity = Math.abs(diff.quantity);
+        var key = quantity === 1 ? diff.key.singular : diff.key.plural;
+        var output = MomentLocaleData().relativeTime(quantity, true, key);
+        if (options.suffix) {
+          return MomentLocaleData().pastFuture(diff.quantity, output);
+        }
+        return output;
       };
 
       return {
-
         date: function(date) {
           return format(date, 'date');
         },
         datetime: function(date) {
           return format(date, 'datetime');
         },
-        relative: function(date) {
+        relative: function(date, options) {
+          options = options || {};
+          if (options.withoutTime) {
+            return relativeDate(date, { suffix: true, humanize: true });
+          }
           return moment(date).fromNow();
+        },
+        age: function(date) {
+          return relativeDate(date);
         }
-
       };
     }
-  ]);
+  );
   
 }()); 

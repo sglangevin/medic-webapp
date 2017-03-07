@@ -7,16 +7,14 @@
 }
 
 .mm-badge {
-  color: #fff;
+  background-color: #fff;
   text-align: center;
   border-radius: 10em;
-  padding: 0.2em 0.6em;
+  padding: 0.25em 0.4em 0.2em 0.5em;
   vertical-align: top;
   display: inline-block;
   margin: 0.2em;
   text-shadow: rgba(0, 0, 0, 0.5) 1px 1px 2px;
-  padding-top: 0.2em;
-  padding-bottom: 0.2em;
 
   .fa {
     text-shadow: none;
@@ -38,10 +36,12 @@
 }
 
 .mm-badge-red {
+  color: #fff;
   background-color: @error-color;
 }
 
 .mm-badge-green {
+  color: #fff;
   background-color: @ok-color;
 }
 
@@ -64,4 +64,11 @@
 .mm-badge-nudge-right {
   position: relative;
   left: 0.5em;
+}
+
+.green-dot {
+  color: @green
+}
+.red-dot {
+  color: @red
 }

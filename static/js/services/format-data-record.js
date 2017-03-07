@@ -7,16 +7,18 @@ var _ = require('underscore'),
 
   var inboxServices = angular.module('inboxServices');
 
-  inboxServices.factory('FormatDataRecord', ['$q', 'AppInfo',
-    function($q, AppInfo) {
-      return function(rows) {
-        var deferred = $q.defer();
-        AppInfo().then(function(appinfo) {
-          deferred.resolve(_.map(rows, function(row) {
-            return sms_utils.makeDataRecordReadable(row.doc, appinfo);
-          }));
-        });
-        return deferred.promise;
+  inboxServices.factory('FormatDataRecord', ['$q', 'AppInfo', 'Language',
+    function($q, AppInfo, Language) {
+      return function(docs) {
+        return $q.all([ AppInfo(), Language() ])
+          .then(function(results) {
+            if (!_.isArray(docs)) {
+              docs = [ docs ];
+            }
+            return _.map(docs, function(doc) {
+              return sms_utils.makeDataRecordReadable(doc, results[0], results[1]);
+            });
+          });
       };
     }
   ]);

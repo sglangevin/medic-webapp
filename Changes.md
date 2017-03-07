@@ -1,8 +1,473 @@
 # Medic Mobile Release Notes
 
+<<<<<<< HEAD
 ## 0.4.9
 
 ### Aug 26, 2015
+=======
+## 2.10.0
+
+_TBD_
+
+### Features
+
+- Use reference to translation keys in app_settings. Issue: #3127
+- Add date of birth to person created by SMS. Issue: #3100
+- Configure the max number of SMS in multipart SMS. Issue: #3095
+- Load messages script fails to use https. Issue: #3081
+- Cannot access all fields for contact in select2. Issue: #3069
+- Configurable contact summary cards. Issue: #3037
+- Display additional information in contact profile. Issue: #2914
+- Support additional context for hiding/showing actions. Issue: #2913
+- Update Tour. Issue: #2212
+
+### Bug fixes
+
+- Targets aren't updated when no longer relevant. Issue: #3207
+- Task issues for restricted user when a report is deleted on the server. Issue: #3189
+- When navigating to the targets tab, I see a flash of the "no analytics modules configured" message. Issue: #3177
+- Update reports when loading the tab. Issue: #3178
+- Error after submitting form. Issue: #3157
+- Deleted message persists until refresh. Issue: #3003
+- Single delete and bulk delete does not immediately remove items from LHS in Reports tab. Issue: #3001
+- Tasks list says "no tasks found" before it's loaded. Issue: #1935
+- Labels not translated for generated report fields. Issue: #3154
+- Getting 502s after submitting task; Tasks not cleared until refresh. Issue: #3111
+- Do not know if patient ID is valid when processing Registrations/Report Actions. Issue: #3082
+- Patient contact creation should happen if a patient contact doesn't already exist. Issue: #3115
+- Task schedules created using the `reported_date` of a report do not show/hide at the expected time. Issue: #3097
+- Patients reports accepted even if no person has the `patient_id`. Issue: #3075
+- Registrations that clear previous registrations also clear themselves. Issue: #3074
+- Ensure useful commands is on medic-os $PATH by default. Issue: #2750
+- Family Members section header shows on person's profile. Issue: #3108
+- Uncaught exception triggers 500 response for subsequent requests. Issue: #3099
+- Broken links in app settings. Issue: #3088
+- Edit function not working for reports sent by unknown number. Issue: #3087
+- SMS reports do not show name in summary. Issue: #3084
+- Auto replies and Scheduled SMS are truncated to fit in single SMS. Issue: #3083
+- Bubble task count not showing on browser refresh. Issue: #3028
+- Scheduled messages not showing accurate date. Issue: #3012
+- SMS API sets messages to `scheduled` on POST. Issue: #3011
+- Scheduled messages not being sent. Issue: #3010
+- JavaRosa Parser should give a better error message when form definition on the web app is mismatched with the submitted message using medic collect. Issue: #2638
+- Contact `person`s don't show up in their places. Issue: #2385
+- `setup_complete` is set too fast, so setup wizard is likely to be skipped. Issue: #2376
+- Submitting a family survey doesn't clear the task. Issue: #2265
+- Ages of children showing up strangely. Issue: #2191
+- Forms and icons fail to replicate on slow connections. Issue: #2113
+
+### UI/UX improvements
+
+- Clickable portion of action is smaller than item. Issue: #3104
+- "Targets" tab blank for admin users. Issue: #3029
+- Action button items get lost in RHS. Issue: #3005
+- Action button should always be left-most button in FAB. Issue: #3004
+- "Up" button at bottom of place/person pages. Issue: #2894
+- Status icon for `delivered` is orange instead of green. Issue: #2752
+- Display format for phone numbers. Issue: #1930
+
+### Performance improvements
+
+- medic-api migration to remove couchmark. Issue: #3068
+- Extract XML forms into attachments. Issue: #3009
+
+## 2.9.1
+
+_January 27, 2017_
+
+### Bug fixes
+
+- Added a migration to fix scheduled messages so they can be sent by medic-gateway. Issue: #3015
+
+## 2.9.0
+
+_December 9, 2016_
+
+### Features
+
+- Redesign of People tab to introduce patient centric workflows.
+- Create Task and Target based on reports using short `patient_id` format. Issue: #2986
+- Calculate Z-Score within app workflow form. Issue: #2915
+- Transitions do not run for XForms. Issue: #2864
+- CHWs should not be able to edit their own area. Issue: #2844
+- Allow for people-centric SMS workflows. Issue: #2700
+- Unique "add person" forms to a place. Issue: #2693
+- Store GPS failure. Issue: #2670
+- Progressive Web App. Issue: #2626
+- Remove XML parsing and replace it with JSON views. Issue: #2432
+- Lowercase all user ids. Issue: #2369
+- New person and new place buttons should add person/place to the part of the hierarchy in which they are clicked. Issue: #2335
+- Create default Edit Place forms that allow users to edit a family's primary contact. Issue: #2333
+- Initial replication feedback. Issue: #2279
+- Make it easy to add translation keys. Issue: #1333
+
+### UI/UX improvements
+
+- Show parent place after deleting a place/person. Issue: #2936
+- Clean up labels and translations. Issue: #2888
+- First load: briefly displays "No people found" on the people and places tab even if you have contacts. Issue: #2835
+- Add icons to forms. Issue: #2794
+- Forms in Submit Report menu aren't sorted. Issue: #2760
+- Reported Date is show in ms since epoch. Issue: #2699
+- Add basic sync status to about page. Issue: #2415
+- Display 'your place' card upon login. Issue: #2342
+- Only show places you directly manage in LHS unless searching. Issue: #2339
+- Lock 'Your Place' at top of left pane. Issue: #2337
+- Remove all filters in Contacts. Issue: #2336
+- Display "disabled for admins" message in tasks and targets page. Issue: #2292
+
+### Bug fixes
+
+- Rerun transitions on change if the previous run failed. Issue: #2978
+- Allow replication of JSON reports. Issue: #2979
+- On upgrade existing reports are not associated to person/place. Issue: #2970
+- Queries from ANC Analytics do not work. Issue: #2975
+- Set new permissions to the application default when updating. Issue: #2951
+- `db-object` fields show as editable when `readonly="true()"`. Issue: #2910
+- Calling the `doc_summaries_by_id` view results in an audit record being created. Issue: #2895
+- Can't create new person as primary contact to existing place. Issue: #2884
+- Mute button does not work. Issue: #2878
+- Cannot fully replicate dbs behind medic-api due to badly named document. Issue: #2876
+- Deregister Changes callbacks. Issue: #2870
+- Non admins can edit translations. Issue: #2868
+- Error when completing a task. Issue: #2851
+- Editing a report from a person doesn't pre-populate the person. Issue: #2845
+- Forms appear on the History page when they shouldn't, based on configuration. Issue: #2837
+- When I click on a report from a contact profile, I see a flash of the History tab before getting to the report view. Issue: #2834
+- When resources change all icons disappear. Issue: #2830
+- Use default revs_limit. Issue: #2787
+- ContactsContent controller modifies doc on render. Issue: #2782
+- Alerts to `reporting_unit` not working. Issue: #2779
+- Correct form not displayed when going to Submit Report. Issue: #2758
+- Validations and Auto-Replies not triggered for Notifications. Issue: #2755
+- Sending message from Reports tab doesn't prefill the modal. Issue: #2748
+- Selecting a person's Report or Task doesn't load the actual item. Issue: #2718
+- select2 form fields are not being prepopulated. Issue: #2703
+- Exporting Feedback crashes API. Issue: #2692
+- Cannot associate a user with a place. Issue: #2683
+- Missing patient ids and CHW names. Sentinel not fully running on Strong Minds instance. Issue: #2675
+- Cannot update a contact's phone number without an error. Issue: #2661
+- Add recipients doesn't work. Issue: #2659
+- Sometimes changes feed is told the wrong ID for user doc. Issue: #2640
+- Submitting a report with an invalid ref id crashes sentinel. Issue: #2636
+- Always use the same pouchdb configuration. Issue: #2625
+- Branch Manager is not getting forms downloaded. Issue: #2620
+- Can crash API with call to /api/v1/users. Issue: #2602
+- TypeError on Messages tab. Issue: #2588
+- `context_by_type_freetext` view seems to run with no search term. Issue: #2584
+- Once viewing a stock report, clicking the area name makes area stats disappear. Issue: #2580
+- Missing option to change time unit in reporting rate analytics. Issue: #2576
+- Missing "district" selector in Reporting rates Analytics in v2.x. Issue: #2575
+- Rename "stock" widget to "reporting rates". Issue: #2574
+- No title shown for analytics stock table. Issue: #2573
+- No loader showing when loading data on analytics stock report. Issue: #2572
+- No loader shown when loading locations on Analytics Stock widget. Issue: #2566
+- Back button is broken on analytics stock widget. Issue: #2565
+- Stock widget shows time-period selector before a place has been selected. Issue: #2564
+- Icons wrong on analytics stock widget. Issue: #2563
+- No text labels displayed in analytics stock widget. Issue: #2562
+- Analytics stock widget breaks on error. Issue: #2561
+- No loading animation is displayed when waiting for list of locations on analytics stock widget. Issue: #2559
+- Analytics page should not show menu if there is only one module. Issue: #2557
+- Cannot choose one of the analytics modules. Issue: #2556
+- Reporting Rates has changed name to Stock Monitoring. Issue: #2555
+- Analytics screen has no information on it. Issue: #2554
+- By default gateway users don't have the `can_access_gateway_api` permission. Issue: #2549
+- Cannot view Targets configuration. Issue: #2548
+- Send message uses a badly performing API. Issue: #2547
+- Document conflict on starting sentinel. Issue: #2542
+- Bad error when not authed for SMS api. Issue: #2540
+- Editing your own user settings wipes out security settings. Issue: #2539
+- Cannot send messages to unknown numbers. Issue: #2536
+- medic-api doesn't seem to correctly expose all pending messages. Issue: #2535
+- Outgoing messages are not well formatted in the report view. Issue: #2532
+- SMS from medic-gateway do not appear in Messages tab. Issue: #2530
+- Phantom SMS message response to invalid textform message. Issue: #2525
+- sentinel keeps processing the same backlog. Issue: #2521
+- Errors starting sentinel with DB name other than 'medic'. Issue: #2513
+- You need to restart medic-api for new translations to make it through. Issue: #2511
+- API connection refused. Issue: #2476
+- Login page not translated. Issue: #2466
+- Language dropdown is empty when adding or editing a user. Issue: #2462
+- Language select modal is blank. Issue: #2459
+- Broken migrations should prevent API from starting. Issue: #2456
+- Geolocation information is not exposed in JSON. Issue: #2450
+- Creating user fails due to invalid `reported_date`. Issue: #2449
+- App takes minutes to load a `person` dropdown. Issue: #2445
+- User can't change their own password. Issue: #2440
+- When switching between reports in History, the "No report selected" page appears momentarily. Issue: #2433
+- \\u0000 cannot be converted to text. Issue: #2426
+- The tour keeps popping up on mobile. Issue: #2423
+- In select mode, clicking on a report on the LHS to check the box also marks the report as read. Issue: #2422
+- DeleteDocs modifies the given array. Issue: #2417
+- DeleteDocs fails if the parent's contact is null. Issue: #2416
+- After clicking "delete" on the RHS of bulk delete, reports do not disappear from the LHS. Issue: #2414
+- Using "select all" when attempting to bulk delete, the number of records on the RHS doesn't match the LHS. Issue: #2411
+- Logout option no longer works on the MM Android app. Issue: #2407
+- national-admins should be able to edit contacts. Issue: #2395
+- Initial replication gets stuck on Tecno. Issue: #2394
+- Cannot have more than one repeat group that creates people within the same form. Issue: #2393
+- Targets tab doesn't show correct progress. Issue: #2388
+- Contacts tab takes forever to load on mobile. Issue: #2378
+- RangeError: Maximum call stack size exceeded. Issue: #2377
+- Don't audit docs that match `_local/*`. Issue: #2366
+- Fix changes proxy to support heartbeat. Issue: #2363
+- .4 analytics page crashes `develop` API. Issue: #2352
+- Admin can't submit report (permissions). Issue: #2351
+- DeleteDoc service breaks replication. Issue: #2331
+- Phones with poor internet connections get an error page when trying to update. Issue: #2328
+- Navigating straight to `medic/_design/medic/_rewrite/#/configuration/user` breaks editing. Issue: #2294
+- Cannot select contact after bad search. Issue: #2252
+- Incoming message not attributed to contact. Issue: #2230
+- Form recognized, but label in list not updated. Issue: #2215
+- Forms not showing in filter. Issue: #2214
+- Schedule not assigned to registration form. Issue: #2213
+- In date filter for Reports tab, the selected dates are being offset by 1 day. Issue: #2185
+- Exceptions when indexing (presumably) views. Issue: #2173
+- Form title disappears on page reload. Issue: #2156
+- User configuration UI doesn't correctly load the attached contact / locale. Issue: #2116
+- Display: block in or-appearance-h2 is overriding the disabled class. Issue: #2101
+- Verify/Unverify button falls out of sync with left pane after being clicked. Issue: #1939
+- Place contact should be a child of the place. Issue: #1710
+- Default "New Person" form doesn't allow editing the parent place. Issue: #2704
+
+### Performance improvements
+
+- Make medic-audit's view generation 8-∞ times faster. Issue: #2879
+- Deregister Changes callbacks. Issue: #2870
+- Improve free text search views. Issue: #2853
+- Admin performance on lg.app has regressed. Issue: #2744
+- Improve application performance for high-utilization CHPs. Issue: #2665
+- Create migration to remove obsolete ddocs. Issue: #2597
+- Send message uses a badly performing API. Issue: #2547
+- Consider refactoring how sentinel views are compiled. Issue: #2537
+- sentinel duplicate views. Issue: #2534
+- Remove XML parsing and replace it with JSON views. Issue: #2432
+- Increase stability by looping over changes . Issue: #2430
+- Replication since gets reset when new documents added. Issue: #2404
+- Use db view pagination where possible. Issue: #2371
+- Don't audit docs that match `_local/*`. Issue: #2366
+- Create a client side ddoc. Issue: #2206
+- Store translations in a separate doc. Issue: #1706
+- Remove empty parents migration scalability. Issue: #2629
+
+## 2.8.5
+
+_December 15, 2016_
+
+- No changes, only a bump in version number to trigger a new release.
+
+## 2.8.4
+
+_November 30, 2016_
+
+### Bug fixes
+
+- Debounce form submissions to stop duplicate submissions. Issue: #2909
+
+## 2.8.3
+
+_November 9, 2016_
+
+### Performance improvements
+
+- Remove traffic statistics collection. Issue: #2886
+
+## 2.8.2
+
+_October 13, 2016_
+
+### Bug fixes
+
+- Ensure PouchDB doesn't mis-label TECNO phones as devices running Safari. Issue: #2797
+
+## 2.8.1
+
+_October 10, 2016_
+
+### Bug fixes
+
+- If initial sync fails without syncing anything subsequent syncs get no results. Issue: #2770
+- Initial sync fails if server doesn't respond within 30 seconds. Issue: #2771
+- Targets tab is blank on first access. Issue: #2739
+
+### Performance improvements
+
+- Adding a space to a contact search term performs poorly. Issue: #2769
+- Local DB grows without limit. Issue: #2434
+
+## 2.8.0
+
+_August 29, 2016_
+
+### Features
+
+- Pass user's info to rule to customize Tasks per user type or location. Issue: #2408
+- Add context to target types and goals. Issue: #2409
+- Update default translations
+- Add ageInDays and ageInMonths functions to the XML forms context utilities. Issue: #2650
+- Users can now only access an optionally configured number of hierarchy levels below their facility. Issue: #2648
+
+### Bug fixes
+
+- Android back button doesn't work as expected. Issue: #2600
+- In date filter for Reports tab, the selected dates are being offset by 1 day. Issue: #2185
+- 'New Contact' option does not appear without a search. Issue: #2516
+- Place contact should be a child of the place. Issue: #1710
+- Geolocation information is not included in submitted form. Issue: #2450
+- Cannot update a contact's phone number without an error. Issue: #2420
+
+## 2.7.3
+
+_July 18, 2016_
+
+### Bug fixes
+
+- Remove maxSockets limit to allow more concurrent connections. Issue: #2492
+
+## 2.7.2
+
+_July 11, 2016_
+
+### Bug fixes
+
+- Connection refused when trying to load app. Issue: #2476
+
+## 2.7.1
+
+_July 4, 2016_
+
+### Bug fixes
+
+- Creating user via fails due to invalid reported_date. Issue: #2449
+
+### Performance improvements
+
+- App takes minutes to load a person dropdown. Issue: #2445
+- Cannot load Configuration Users page. Issue: #2444
+
+## 2.7.0
+
+_June 8, 2016_
+
+### Features
+
+- Bulk delete reports. Issue: #1000
+
+### Bug fixes
+
+- Report list item summaries aren't translated. Issue: #2100
+- Fix form type filter. Issue: #1409
+
+### Performance improvements
+
+- Replication performance. Issue: #2286
+- Improve search performance. Issue: #2302
+- Don't fetch form titles for each Contact report. Issue: #2300
+- Only fetch relevant data for the Users service. Issue: #2262
+- Remove clinics from the Facility filter dropdown. Issue: #2218
+- Optimize admin bandwidth concerns. Issue: #2211
+- We request facilities from the server over and over again. Issue: #2210
+- Don't audit _local docs. Issue: #2366
+- All requests to CouchDB time out after 10 seconds. Issue: #2325
+- Long delay loading contact dropdowns. Issue: #2326
+
+## 2.6.3
+
+_May 23, 2016_
+
+- "console not defined" error when loading page. Issue: #2277
+- Pouch doesn't update seq unless something has changed. Issue: #2288
+- Snackbar showing all the time. Issue: #2306
+- Support external_id property on user-settings docs. Issue: #2310
+
+## 2.6.2
+
+_May 6, 2016_
+
+- Update PouchDB to improve replication reliability and performance. Issue: #2134 #2167
+- When editing a CHP Area, previously set values for CHP, Branch, and Supervisor do not show up. Issue: #2223
+- Dropdowns in CHP Area create and edit forms have no blank option. Issue: #2227
+- allow-new appearance in Enketo doesn't make the "New" option appear. Issue: #2251
+- Improve performance of Enketo db-object-widget. Issue: #2161
+- Ensure roles are always available on user-settings. Issue: #2199
+- Form type filter doesn't include all forms. Issue: #1409
+- Added APIs for creating Users, People, and Places. Issue: #2046
+
+## 2.6.1
+
+_April 21, 2016_
+
+- User's fullname is not showing up in /configuration/users. Issue: #2200
+- Deleted documents cause sentinel log spam. Issue: #1999
+- Disable nools for unrestricted users. Issue: medic-projects#149
+- Update libphonenumber and use strict validation. Issue: #2159 #2196
+- Contacts export response garbled. Issue: #2187
+
+## 2.6.0
+
+_April 5, 2016_
+
+This release contains breaking changes from 0.x versions. Updating from 0.x versions may result in the application no longer operating as expected.
+
+- The app can now be used offline and synced back to the server later.
+- Added an android app for accessing the webapp from mobile.
+- Added Tasks feature for rich event scheduling.
+- Forms can now be provided in XForm format for rich form UIs.
+- Added a configurable Target analytics module.
+
+## 0.4.15
+
+_March 2, 2017_
+ 
+- Fixed potential race condition with medic-gateway. Issue: medic-projects/issues/1243
+- Bumped libphonenumber to make phone number validation more up to date. Issue: medic-projects/issues/1005
+
+## 0.4.14
+
+_December 16, 2016_
+
+- Bug fix for medic-gateway sending scheduled messages. Issue: #2535
+
+## 0.4.13
+
+_October 21, 2016_
+
+- Option to set birthdate using days old instead of weeks. Issue: #2756
+- The week/month is off by 2 in the Reporting Rates analytics dashboard. Issue: #2781
+- Remove socket limit in medic-api. Issue: #2632
+
+## 0.4.12
+
+_July 21, 2016_
+
+- Fixed bug in reporting rates for weekly time unit. #2429
+- Log warnings in sentinel when ID collisions happen. #1898
+- Support integration with [medic-gateway](https://github.com/medic/medic-gateway) for sending and receiving SMS medic-api#69
+
+## 0.4.11
+
+_February 4, 2016_
+
+- Security fix for leaking auth info.
+
+## 0.4.10
+
+_Nov 16, 2015_
+
+- Added support for Outgoing Deny List, a comma separated list of phone numbers
+  or strings to deny outgoing service to. #750
+
+- Fixed bug in records export. #1273
+
+- Fixed bugs in uniqueWithin validation. medic-sentinel#74
+
+- Added link to Help page in main menu.
+
+## 0.4.9
+
+_Aug 26, 2015_
+>>>>>>> medic/master
 
 - Fixed bug on node 0.12 in felix-couchdb. #1145
 
@@ -15,10 +480,13 @@
 
 - Fixed bug in exporting data by date, it's now inclusive. #1104
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> medic/master
 ## 0.4.8
 
-### Jul 14, 2015
+_July 14, 2015_
 
 - Added SMS parser fixes from dev branch:
    
@@ -33,7 +501,7 @@
 
 ## 0.4.7
 
-### Jun 16, 2015
+_June 16, 2015_
 
 - Fixed ODK forms list bug when the list is empty. Issue #886
 
@@ -49,13 +517,13 @@
 
 ## 0.4.6
 
-### Jun 4, 2015
+_June 4, 2015_
 
 - Improved boolean expression evaluation in registration configuration.
 
 ## 0.4.5
 
-### May 28, 2015
+_May 28, 2015_
 
 - Fixed bug in schedules editor for LMP (last menstrual period) based
   schedules. #973
@@ -65,16 +533,16 @@
 
 ## 0.4.4
 
-### May 21, 2015
+_May 21, 2015_
 
 - Added support for a new messages parser we're calling Javarosa prefixed with
   the `J1` format code. 
 
 ## 0.4.3
 
-### Feb 26, 2015
+_February 26, 2015_
 
-#### Features
+### Features
 
 - Major UI enhancements #370
 
@@ -104,7 +572,7 @@
   and has no way of changing facility, form, or file format. The latter is
   functionally equivalent to 0.4.2.
 
-#### Upgrade Notes
+### Upgrade Notes
 
 - CouchDB Lucene >= 1.0.2
 
@@ -115,13 +583,13 @@
 
 ## 0.4.2
 
-### Sep 4, 2014
+_September 4, 2014_
 
 - Fixed bug: When searching for a patient identifier using the free-text search feature, results were not returned properly. Index the field appropriately.
 
 ## 0.4.1
 
-### Jul 31, 2014
+_July 31, 2014_
 
 - Minor UI clean up.
 
@@ -131,9 +599,9 @@
 
 ## 0.4.0
 
-### Jul 10, 2014
+_July 10, 2014_
 
-#### New Features
+### New Features
 
 - User interface for common settings and translations #484
 
@@ -171,7 +639,7 @@
 
 - Allow range searches on number fields in lucene. #481
 
-#### Bug fixes
+### Bug fixes
 
 - Fixed bug stopping district admins from being able to delete documents. #509
 
@@ -183,7 +651,7 @@
 
 - Render facilities controls on all facilities tabs. #338
 
-#### Deprecated and Backwards Incompatible changes
+### Deprecated and Backwards Incompatible changes
 
 - deprecated `exclude_cols` parameter for export integrations. Migrate 
   applications to use the `columns` parameter instead.
@@ -194,7 +662,7 @@
 
 ## 0.3.11
 
-### Jun 19, 2014
+_June 19, 2014_
 
 - Fixed bug where scheduled messages were out of order on Chrome #527
 
@@ -222,21 +690,21 @@
 
 ## 0.3.10
 
-### Jun 12, 2014
+_June 12, 2014_
 
 - updated intrahealth-senegal forms
 
 
 ## 0.3.9
 
-### May 22, 2014
+_May 22, 2014_
 
 - fixed a bug in settings parser, to conform to the latest app-settings
   changes, otherwise configs never get triggered.
 
 ## 0.3.8
 
-### May 22, 2014
+_May 22, 2014_
 
 - fixed bug in messages export filters to include all data records,
   unstructured messages were being ignored. #502
@@ -249,21 +717,21 @@
 
 ## 0.3.7
 
-### May 13, 2014
+_May 13, 2014_
 
 - Modified KEMRI form fields to be ordered the same as KEMR form.
 
 
 ## 0.3.6
 
-### Apr 28, 2014
+_April 28, 2014_
 
 - Fixed bug in updating duplicate scheduled reports #483
 
 
 ## 0.3.5
 
-### Apr 16, 2014
+_April 16, 2014_
 
 - Major bug fix that was introduced in 0.3.3 where visit reports do not get processed.
 
@@ -279,7 +747,7 @@
 
 ## 0.3.4
 
-### Apr 14, 2014
+_April 14, 2014_
 
 - translate strings on user mgmt facilities select list #474
 
@@ -292,7 +760,7 @@
 
 ## 0.3.3
 
-### Apr 10, 2014
+_April 10, 2014_
 
 - Fixed spreadsheet keyboard navigation. #448
 
@@ -370,7 +838,7 @@
 
 ## 0.3.2
 
-### Mar 11, 2014 
+_March 11, 2014 _
 
 - fixed facilities spreadsheet bug #451 in Chrome
     
@@ -379,7 +847,7 @@
 
 ## 0.3.1
 
-### Mar 3, 2014 
+_March 3, 2014 _
 
 - Fixed a bug where the facilities spreadsheet was holding focus so sending a message doesn't work. #440
 
@@ -442,7 +910,7 @@
     
 ## 0.3.0-beta.39 (bugfix)
 
-### Feb 25, 2014
+_February 25, 2014_
 
 - Fixed textforms whitespace parser bug when using form list field types. #431
 
@@ -458,14 +926,14 @@
 
 ## 0.3.0-beta.38 (debug) 
 
-### Feb 13, 2014
+_February 13, 2014_
  
 - added logging calls to help debug and identify whitespace parsing bug #431
 
 
 ## 0.3.0-beta.37 
 
-### Jan 21, 2014
+_January 21, 2014_
 
 - Fixes to user roles (@marc)
  
@@ -565,7 +1033,3 @@
     Outgoing Messages
     Scheduled Tasks
 ```
-
-
-    
-    

@@ -1,4 +1,5 @@
-var format = require('../modules/format');
+var format = require('../modules/format'),
+    _ = require('underscore');
 
 (function () {
 
@@ -6,22 +7,30 @@ var format = require('../modules/format');
 
   var module = angular.module('inboxFilters');
 
-  var getFormName = function(message, forms) {
-    for (var i = 0; i < forms.length; i++) {
-      if (message.form === forms[i].code) {
-        return forms[i].name;
-      }
+  var getFormName = function(TranslateFrom, record, forms) {
+    var form = _.findWhere(forms, { code: record.form });
+    if (form) {
+      return TranslateFrom(form.name);
     }
-    return message.form;
+    return record.form;
   };
 
+<<<<<<< HEAD
   module.filter('summary', function () {
     return function (record, forms) {
+=======
+  module.filter('summary', function(
+    $translate,
+    TranslateFrom
+  ) {
+    'ngInject';
+    return function(record, forms) {
+>>>>>>> medic/master
       if (!record || !forms) {
         return '';
       }
       if (record.form) {
-        return getFormName(record, forms);
+        return getFormName(TranslateFrom, record, forms);
       }
       if (record.message && record.message.message) {
         return record.message.message;
@@ -32,27 +41,42 @@ var format = require('../modules/format');
           record.tasks[0].messages[0]) {
         return record.tasks[0].messages[0].message;
       }
-      return 'Message';
+      return $translate.instant('tasks.0.messages.0.message');
     };
   });
 
+<<<<<<< HEAD
   module.filter('title', function () {
     return function (message, forms) {
       if (!message || !forms) {
+=======
+  module.filter('title', function(
+    $translate,
+    TranslateFrom
+  ) {
+    'ngInject';
+    return function(record, forms) {
+      if (!record || !forms) {
+>>>>>>> medic/master
         return '';
       }
-      if (message.form) {
-        return getFormName(message, forms);
+      if (record.form) {
+        return getFormName(TranslateFrom, record, forms);
       }
-      if (message.kujua_message) {
-        return 'Outgoing Message';
+      if (record.kujua_message) {
+        return $translate.instant('Outgoing Message');
       }
-      return 'Incoming Message';
+      return $translate.instant('sms_message.message');
     };
   });
 
-  module.filter('clinic', function () {
-    return format.clinic;
+  module.filter('clinic', function(
+    $state
+  ) {
+    'ngInject';
+    return function(entity) {
+      return format.clinic(entity, $state);
+    };
   });
 
   module.filter('shortLabel', function() {

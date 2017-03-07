@@ -1,5 +1,4 @@
-var async = require('async'),
-    _ = require('underscore');
+var _ = require('underscore');
 
 (function () {
 
@@ -7,91 +6,47 @@ var async = require('async'),
 
   var inboxServices = angular.module('inboxServices');
 
-  inboxServices.factory('MessageContactsRaw', ['$resource', 'BaseUrlService',
-    function($resource, BaseUrlService) {
-      return function(params, callback) {
-        $resource(BaseUrlService() + '/message_contacts', {}, {
-          query: {
-            isArray: false,
-            params: params
-          }
-        }).query(
-          function(res) {
-            callback(null, res.rows);
-          },
-          function(err) {
-            callback(err);
-          }
-        );
-      };
-    }
-  ]);
-
-  var generateQuery = function(options, districtId) {
-    var startkey = [ districtId ];
-    var endkey = [ districtId ];
-    if (options.id) {
-      startkey.push(options.id);
-      endkey.push(options.id);
-    }
-    (options.queryOptions.descending ? startkey : endkey).push({});
-
+  var generateQuery = function(options) {
     var query = _.clone(options.queryOptions);
-    query.startkey = JSON.stringify(startkey);
-    query.endkey = JSON.stringify(endkey);
+    query.startkey = [ ];
+    query.endkey = [ ];
+    if (options.id) {
+      query.startkey.push(options.id);
+      query.endkey.push(options.id);
+    }
+    (query.descending ? query.startkey : query.endkey).push({});
     return query;
   };
 
-  var query = function($rootScope, MessageContactsRaw, UserDistrict, Settings, options, callback) {
-    async.auto({
-      district: function(callback) {
-        UserDistrict(callback);
-      },
-      request: ['district', function(callback, results) {
-        var query = generateQuery(options, results.district || 'admin');
-        MessageContactsRaw(query, callback);
-      }],
-      unallocated: function(callback) {
-        if (!options.districtAdmin) {
-          return callback(null, false);
-        }
-        Settings(function(err, settings) {
-          var result = settings && settings.district_admins_access_unallocated_messages;
-          callback(err, result);
-        });
-      },
-      requestUnallocated: ['unallocated', function(callback, results) {
-        if (!results.unallocated) {
-          return callback();
-        }
-        MessageContactsRaw(generateQuery(options, 'none'), callback);
-      }]
-    }, function(err, results) {
-      var merged;
-      if (results.request && results.requestUnallocated) {
-        merged = results.request.concat(results.requestUnallocated);
-      } else {
-        merged = results.request;
-      }
-      callback(err, merged);
-      if (!$rootScope.$$phase) {
-        $rootScope.$apply();
-      }
-    });
+  var query = function(DB, options) {
+    var params = generateQuery(options);
+    return DB()
+      .query('medic-client/messages_by_contact_date', params)
+      .then(function(res) {
+        return res.rows;
+      });
   };
-  
-  inboxServices.factory('MessageContact', ['$rootScope', 'MessageContactsRaw', 'UserDistrict', 'Settings',
-    function($rootScope, MessageContactsRaw, UserDistrict, Settings) {
-      return function(options, callback) {
-        options.queryOptions = { group_level: 2 };
-        query($rootScope, MessageContactsRaw, UserDistrict, Settings, options, callback);
+
+  inboxServices.factory('MessageContact',
+    function(
+      DB
+    ) {
+      'ngInject';
+      return function(options) {
+        options.targetScope = 'messages';
+        options.queryOptions = { group_level: 1 };
+        return query(DB, options);
       };
     }
-  ]);
-  
-  inboxServices.factory('ContactConversation', ['$rootScope', 'MessageContactsRaw', 'UserDistrict', 'Settings',
-    function($rootScope, MessageContactsRaw, UserDistrict, Settings) {
-      return function(options, callback) {
+  );
+
+  inboxServices.factory('ContactConversation',
+    function(
+      DB
+    ) {
+      'ngInject';
+      return function(options) {
+        options.targetScope = 'messages.details';
         options.queryOptions = {
           reduce: false,
           descending: true,
@@ -99,9 +54,9 @@ var async = require('async'),
           skip: options.skip,
           limit: 50
         };
-        query($rootScope, MessageContactsRaw, UserDistrict, Settings, options, callback);
+        return query(DB, options);
       };
     }
-  ]);
+  );
 
 }());

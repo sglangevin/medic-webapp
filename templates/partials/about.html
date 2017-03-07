@@ -1,0 +1,101 @@
+<div class="row filters"></div>
+
+<div class="inner" ng-cloak>
+  <div class="col-sm-12 page help" ui-view="content">
+
+    <a ng-click="reload()" class="btn btn-primary" translate>Reload</a>
+
+    <div>
+      <h3 translate>about</h3>
+      <dl class="horizontal">
+        <dt translate>version</dt>
+        <dd>{{version}}</dd>
+        <span ng-show="android_app_version">
+          <dt translate>android_app.version.title</dt>
+          <dd>{{android_app_version}}</dd>
+        </span>
+        <dt translate>ddoc.version</dt>
+        <dd>{{ddocVersion}}</dd>
+        <dt translate>clientDdoc.version</dt>
+        <dd>{{clientDdocVersion}}</dd>
+        <dt translate>url</dt>
+        <dd>{{url}}</dd>
+        <dt translate>User Name</dt>
+        <dd>{{userCtx.name}}</dd>
+      </dl>
+    </div>
+
+    <div>
+      <h3 translate>debug.db_info.title</h3>
+      <dl class="horizontal">
+        <dt translate>debug.db_info.name</dt>
+        <dd>{{dbInfo.db_name}}</dd>
+        <dt translate>debug.db_info.docs</dt>
+        <dd>{{dbInfo.doc_count}}</dd>
+        <dt translate>debug.db_info.seq</dt>
+        <dd>{{dbInfo.update_seq}}</dd>
+        <dt translate>replication.last.success.to</dt>
+        <dd ng-if="!replicationStatus.disabled && replicationStatus.lastSuccess.to">
+          {{replicationStatus.lastSuccess.to | simpleDateTime}}
+        </dd>
+        <dd ng-if="!replicationStatus.disabled && !replicationStatus.lastSuccess.to" translate>
+          replication.last.success.unknown
+        </dd>
+        <dd ng-if="replicationStatus.disabled" translate>
+          replication.disabled
+        </dd>
+        <dt translate>replication.last.success.from</dt>
+        <dd ng-if="!replicationStatus.disabled && replicationStatus.lastSuccess.from">
+          {{replicationStatus.lastSuccess.from | simpleDateTime}}
+        </dd>
+        <dd ng-if="!replicationStatus.disabled && !replicationStatus.lastSuccess.from" translate>
+          replication.last.success.unknown
+        </dd>
+        <dd ng-if="replicationStatus.disabled" translate>
+          replication.disabled
+        </dd>
+      </dl>
+    </div>
+
+    <div ng-if="androidDataUsage">
+      <h3 translate>android_app.data_usage.title</h3>
+      <p translate>android_app.data_usage.description</p>
+      <h4 translate>android_app.data_usage.system.title</h4>
+      <dl class="horizontal">
+        <dt translate>android_app.data_usage.rx</dt>
+        <dd translate="number.bytes" translate-values="{ number: '{{androidDataUsage.system.rx | number}}' }"></dd>
+        <dt translate>android_app.data_usage.tx</dt>
+        <dd translate="number.bytes" translate-values="{ number: '{{androidDataUsage.system.tx | number}}' }"></dd>
+      </dl>
+      <h4 translate>android_app.data_usage.app.title</h4>
+      <dl class="horizontal">
+        <dt translate>android_app.data_usage.rx</dt>
+        <dd translate="number.bytes" translate-values="{ number: '{{androidDataUsage.app.rx | number}}' }"></dd>
+        <dt translate>android_app.data_usage.tx</dt>
+        <dd translate="number.bytes" translate-values="{ number: '{{androidDataUsage.app.tx | number}}' }"></dd>
+      </dl>
+    </div>
+
+    <div ng-hide="help_pages.length === 0">
+      <h3 translate>Help</h3>
+      <ul>
+        <li ng-repeat="page in help_pages">
+          <a ui-sref="help({ page: page.id })">{{page.title}}</a>
+        </li>
+      </ul>
+      <div class="loader" ng-show="help_loading"></div>
+    </div>
+
+    <div>
+      <h3 translate>Debug</h3>
+      <p translate>debug.mode.description</p>
+      <form>
+        <label>
+          <input ng-model="enableDebugModel.val" type="checkbox" />
+          <span translate>debug.mode.title</span>
+        </label>
+      </form>
+    </div>
+
+  </div>
+</div>

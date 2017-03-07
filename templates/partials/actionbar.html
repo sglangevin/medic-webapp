@@ -1,27 +1,172 @@
 <div class="container-fluid action-container">
   <div class="row">
     <div class="inner">
-      <div class="col-sm-4"></div>
-      <div class="col-sm-8 column">
-        <div class="actions">
-          <a class="mm-icon mm-icon-inverse mm-icon-caption send-message" data-send-to="{~lb}{~lb}selected.from{~rb}{~rb}">
-            <span class="fa fa-mail-reply"></span>
-            <p>{~lb}{~lb}'Reply' | translate{~rb}{~rb}</p>
-          </a><a class="mm-icon mm-icon-inverse mm-icon-caption" ng-click="updateFacilityShow()">
-            <span class="fa fa-pencil"></span>
-            <p>{~lb}{~lb}'Edit' | translate{~rb}{~rb}</p>
-          </a><a class="mm-icon mm-icon-inverse mm-icon-caption" ng-class="{'mm-icon-disabled': selected && !selected.form}" ng-show="!selected.verified" ng-click="verify(true)">
-            <span class="fa fa-check"></span>
-            <p>{~lb}{~lb}'Verify' | translate{~rb}{~rb}</p>
-          </a><a class="mm-icon mm-icon-inverse mm-icon-caption" ng-class="{'mm-icon-disabled': selected && !selected.form}" ng-show="selected.verified" ng-click="verify(false)">
-            <span class="fa fa-times"></span>
-            <p>{~lb}{~lb}'Unverify' | translate{~rb}{~rb}</p>
-          </a><a class="mm-icon mm-icon-inverse mm-icon-caption" ng-click="deleteDoc(selected._id)">
+
+      <div class="col-sm-4 general-actions left-pane" ng-show="currentTab === 'reports' && selectMode">
+        <div class="actions dropup">
+          <a class="mm-icon mm-icon-inverse mm-icon-caption select-all" ng-click="emit('SelectAll')">
+            <span class="fa fa-check-square-o"></span>
+            <p translate>select.mode.select.all</p>
+          </a>
+          <a class="mm-icon mm-icon-inverse mm-icon-caption deselect-all" ng-click="emit('DeselectAll')">
+            <span class="fa fa-square-o"></span>
+            <p translate>select.mode.deselect.all</p>
+          </a>
+          <a class="mm-icon mm-icon-inverse mm-icon-caption delete-all" mm-auth="can_bulk_delete_reports" ng-click="deleteDoc(actionBar.selected)" ng-class="{'mm-icon-disabled': !actionBar.selected.length}">
             <span class="fa fa-trash-o"></span>
-            <p>{~lb}{~lb}'Delete' | translate{~rb}{~rb}</p>
+            <p translate>select.mode.delete.all</p>
+          </a>
+          <a class="mm-icon mm-icon-inverse mm-icon-caption select-mode-stop" ng-click="setSelectMode(false)">
+            <span class="fa fa-times-circle"></span>
+            <p translate>select.mode.stop</p>
           </a>
         </div>
       </div>
+
+      <div class="col-sm-4 general-actions left-pane" ng-show="currentTab === 'reports' && !selectMode">
+        <div class="actions dropup">
+          <a class="mm-icon mm-icon-inverse mm-icon-caption dropdown-toggle" data-toggle="dropdown" ng-class="{'mm-icon-disabled': !nonContactForms.length}">
+            <span class="fa fa-plus"></span>
+            <p translate>Submit Report</p>
+          </a>
+          <ul class="dropdown-menu mm-dropdown-menu" ng-show="nonContactForms.length">
+            <li ng-repeat="form in nonContactForms | orderBy: 'title | translateFrom' track by (form._id || form.code)">
+              <a ui-sref="reports.add({ formId: form.internalId })">
+                <span ng-bind-html="form.icon | resourceIcon"></span>
+                {{form.title | translateFrom}}
+              </a>
+            </li>
+          </ul>
+          <a class="mm-icon mm-icon-inverse mm-icon-caption select-mode-start" mm-auth="can_bulk_delete_reports" ng-click="setSelectMode(true)">
+            <span class="fa fa-check-circle"></span>
+            <p translate>select.mode.start</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="col-sm-4 general-actions left-pane" ng-show="currentTab === 'contacts'">
+        <div class="actions dropup">
+          <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-show="actionBar.left.userChildPlace.type" ui-sref="contacts.addChild({ type: actionBar.left.userChildPlace.type, parent_id: actionBar.left.userFacilityId })">
+            <span class="fa-stack">
+              <i class="fa {{actionBar.left.userChildPlace.icon}} fa-stack-1x"></i>
+              <i class="fa fa-plus fa-stack-1x"></i>
+            </span>
+            <p translate>{{actionBar.left.addPlaceLabel}}</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="col-sm-4 general-actions left-pane" ng-show="currentTab === 'messages'">
+        <div class="actions dropup">
+          <a class="mm-icon mm-icon-inverse mm-icon-caption send-message" ng-show="currentTab === 'messages'">
+            <span class="fa fa-plus"></span>
+            <p translate>Send Message</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="col-sm-8 detail-actions right-pane" ng-show="currentTab === 'reports'">
+        <div ng-show="selectMode">
+          <div class="actions dropup" ng-show="showActionBar && actionBar.selected.length && (!loadingContent) && 'reports.detail' | isState">
+            <a class="mm-icon mm-icon-inverse mm-icon-caption delete-all" mm-auth="can_bulk_delete_reports" ng-click="deleteDoc(actionBar.selected)">
+              <span class="fa fa-trash-o"></span>
+              <p translate>select.mode.delete.all</p>
+            </a>
+          </div>
+        </div>
+
+        <div ng-show="!selectMode">
+          <div class="actions dropup" ng-show="showActionBar && actionBar.selected && !loadingContent && ('reports.detail' | isState)">
+            <a class="mm-icon mm-icon-inverse mm-icon-caption mobile-only" href="sms:{{actionBar.sendTo.phone}}" ng-class="{'mm-icon-disabled': !actionBar.sendTo.phone}">
+              <span class="fa fa-envelope"></span>
+              <p translate>Send Message</p>
+            </a>
+            <a class="mm-icon mm-icon-inverse mm-icon-caption send-message desktop-only" data-send-to="{{actionBar.sendTo._id}}" ng-class="{'mm-icon-disabled': !actionBar.sendTo.phone}">
+              <span class="fa fa-envelope"></span>
+              <p translate>Send Message</p>
+            </a>
+            <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-show="!actionBar.verified" ng-click="emit('VerifyReport', true)">
+              <span class="fa fa-check"></span>
+              <p translate>Verify</p>
+            </a>
+            <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-show="actionBar.verified" ng-click="emit('VerifyReport', false)">
+              <span class="fa fa-times"></span>
+              <p translate>Unverify</p>
+            </a>
+            <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-show="actionBar.type === 'xml'" ui-sref="reports.edit({ reportId: actionBar.selected[0]._id })">
+              <span class="fa fa-pencil"></span>
+              <p translate>Edit</p>
+            </a>
+            <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-show="actionBar.type !== 'xml'" ng-click="emit('EditReport')">
+              <span class="fa fa-pencil"></span>
+              <p translate>Update Facility</p>
+            </a>
+            <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-click="deleteDoc(actionBar.selected)" ng-class="{'mm-icon-disabled': actionBar.disableDelete}" mm-auth="can_delete_reports">
+              <span class="fa fa-trash-o"></span>
+              <p translate>Delete</p>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-8 detail-actions right-pane" ng-show="currentTab === 'contacts'">
+        <div class="actions dropup" ng-show="showActionBar && actionBar.right.selected && !loadingContent && ('contacts.detail' | isState)">
+
+          <a class="mm-icon mm-icon-inverse mm-icon-caption dropdown-toggle" data-toggle="dropdown" ng-class="{'mm-icon-disabled': (!actionBar.right.relevantForms || !actionBar.right.relevantForms.length)}">
+            <span class="fa fa-plus"></span>
+            <p translate>action.report.add</p>
+          </a>
+          <ul class="dropdown-menu mm-dropdown-menu" ng-hide="(!actionBar.right.relevantForms || !actionBar.right.relevantForms.length)">
+            <li ng-repeat="form in actionBar.right.relevantForms">
+              <a ui-sref="contacts.report({ id: actionBar.right.selected[0]._id, formId: form.internalId })">
+                <span ng-bind-html="form.icon | resourceIcon"></span>
+                {{form.title | translateFrom}}
+                <span class="pull-right fa fa-chevron-right"></span>
+              </a>
+            </li>
+          </ul>
+
+          <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-show="actionBar.right.selected[0].child.type" ui-sref="contacts.addChild({ type: actionBar.right.selected[0].child.type, parent_id: actionBar.right.selected[0]._id })">
+            <span class="fa-stack">
+              <i class="fa {{actionBar.right.selected[0].child.icon}} fa-stack-1x"></i>
+              <i class="fa fa-plus fa-stack-1x"></i>
+            </span>
+            <p translate>{{actionBar.right.selected[0].child.addPlaceLabel}}</p>
+          </a>
+
+          <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-show="actionBar.right.selected[0].type !== 'person'" ui-sref="contacts.addChild({ type: 'person', parent_id: actionBar.right.selected[0]._id })">
+            <span class="fa-stack">
+              <i class="fa fa-user fa-stack-1x"></i>
+              <i class="fa fa-plus fa-stack-1x"></i>
+            </span>
+            <p translate>action.person.add</p>
+          </a>
+
+          <a class="mm-icon mm-icon-inverse mm-icon-caption mobile-only" href="tel:{{actionBar.right.sendTo.phone}}" ng-class="{'mm-icon-disabled': !actionBar.right.sendTo.phone}" ng-show="actionBar.right.sendTo">
+            <span class="fa fa-phone"></span>
+            <p translate>call</p>
+          </a>
+          <a class="mm-icon mm-icon-inverse mm-icon-caption mobile-only" href="sms:{{actionBar.right.sendTo.phone}}" ng-class="{'mm-icon-disabled': !actionBar.right.sendTo.phone}" ng-show="actionBar.right.sendTo">
+            <span class="fa fa-envelope"></span>
+            <p translate>Send Message</p>
+          </a>
+          <a class="mm-icon mm-icon-inverse mm-icon-caption send-message desktop-only" data-send-to="{{actionBar.right.sendTo._id}}" ng-class="{'mm-icon-disabled': !actionBar.right.sendTo.phone}" ng-show="actionBar.right.sendTo">
+            <span class="fa fa-envelope"></span>
+            <p translate>Send Message</p>
+          </a>
+
+          <a class="mm-icon mm-icon-inverse mm-icon-caption" ui-sref="contacts.edit({ id: actionBar.right.selected[0]._id })" ng-class="{'mm-icon-disabled': !actionBar.right.canEdit}">
+            <span class="fa fa-pencil"></span>
+            <p translate>Edit</p>
+          </a>
+
+          <a class="mm-icon mm-icon-inverse mm-icon-caption" ng-click="deleteDoc(actionBar.right.selected)" ng-class="{'mm-icon-disabled': !actionBar.right.canDelete}" mm-auth="can_delete_contacts">
+            <span class="fa fa-trash-o"></span>
+            <p translate>Delete</p>
+          </a>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

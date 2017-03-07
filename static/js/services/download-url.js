@@ -1,66 +1,55 @@
-var moment = require('moment');
-
 (function () {
 
   'use strict';
 
   var inboxServices = angular.module('inboxServices');
 
-  var getUrl = function(BaseUrlService, options) {
-    var url = [BaseUrlService()];
-    url.push('export');
-    if (options.messages) {
-      url.push('messages');
-    } else {
-      url.push('forms');
-      if (options.form && options.form.code) {
-        url.push(options.form.code);
-      }
-    }
-    return url.join('/');
+  var TYPES = {
+    reports:  { name: 'reports', apiName: 'forms', format: 'xml', lucene: true },
+    contacts: { name: 'contacts', format: 'json', lucene: true },
+    messages: { name: 'messages', format: 'xml' },
+    audit:    { name: 'audit', format: 'xml' },
+    feedback: { name: 'feedback', format: 'xml' },
+    logs:     { name: 'logs', format: 'zip' }
   };
 
-  var getKey = function(options, date) {
-    var key = [];
+  inboxServices.factory('DownloadUrl',
+    function(
+      $q,
+      GenerateSearchQuery,
+      Language
+    ) {
+      'ngInject';
 
-    // district
-    if (options.district) {
-      key.push(options.district);
-    }
+      var buildUrl = function(type, language, filters) {
+        var name = type.apiName || type.name;
+        var params = getParams(type, language, filters);
+        return '/api/v1/export/' + name + '?' + $.param(params);
+      };
 
-    // form
-    key.push(getFormKey(options));
-
-    // date
-    key.push(date);
-
-    return JSON.stringify(key);
-  };
-
-  var getFormKey = function(options) {
-    if (options.messages) {
-      return 'null_form';
-    }
-    if (options.form && options.form.code) {
-      return options.form.code;
-    }
-    return '*';
-  };
-
-  inboxServices.factory('DownloadUrl', ['BaseUrlService',
-    function(BaseUrlService) {
-      return function(options) {
-        options = options || {};
+      var getParams = function(type, language, filters) {
         var params = {
-          startkey: getKey(options, 9999999999999),
-          endkey: getKey(options, 0),
-          tz: options.tz || moment().zone(),
-          format: options.format || 'xml',
-          reduce: false
+          format: type.format,
+          locale: language
         };
-        return getUrl(BaseUrlService, options) + '?' + $.param(params);
+        if (type.lucene) {
+          var response = GenerateSearchQuery(type.name, filters);
+          params.query = JSON.stringify(response.query);
+          params.schema = JSON.stringify(response.schema);
+        }
+        return params;
+      };
+
+      return function(filters, typeName) {
+        var type = TYPES[typeName];
+        if (!type) {
+          return $q.reject(new Error('Unknown download type'));
+        }
+        return Language().then(function(language) {
+          return buildUrl(type, language, filters);
+        });
       };
     }
-  ]);
+  );
 
 }()); 

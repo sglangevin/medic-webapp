@@ -1,0 +1,17 @@
+<mm-modal
+  status="status"
+  id="'feedback'"
+  title-key="'Report Bug'"
+  submit-key="'Submit'"
+  submitting-key="'Submitting'"
+  on-cancel="cancel()"
+  on-submit="submit()"
+>
+  <form action="" method="POST">
+    <div class="control-group">
+      <div class="controls">
+        <textarea ng-model="model.message" translate translate-attr-placeholder="Bug description"></textarea>
+      </div>
+    </div>
+  </form>
+</mm-modal>

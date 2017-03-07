@@ -6,52 +6,50 @@ var _ = require('underscore');
 
   var inboxServices = angular.module('inboxServices');
 
-  var updateReadStatus = function(message, user, read) {
-    var readers = message.read || [];
+  var updateDoc = function(user, read, doc) {
+    var readers = doc.read || [];
     var index = readers.indexOf(user);
     if ((index !== -1) === read) {
       // already in the correct state
-      return false;
+      return;
     }
     if (read) {
       readers.push(user);
     } else {
       readers.splice(index, 1);
     }
-    message.read = readers;
-    return true;
+    doc.read = readers;
+    return doc;
   };
-  
-  inboxServices.factory('MarkRead', ['db', 'UserCtxService',
-    function(db, UserCtxService) {
-      return function(messageId, read, callback) {
-        db.getDoc(messageId, function(err, message) {
-          if (err) {
-            return callback(err);
-          }
-          if (updateReadStatus(message, UserCtxService().name, read)) {
-            db.saveDoc(message, function(err) {
-              callback(err, message);
-            });
-          } else {
-            callback(null, message);
-          }
-        });
+
+  var updatDocs = function(user, read, docs) {
+    return _.compact(_.map(docs, _.partial(updateDoc, user, read)));
+  };
+
+  inboxServices.factory('MarkRead', ['DB', 'Session',
+    function(DB, Session) {
+      return function(docId, read) {
+        var user = Session.userCtx().name;
+        return DB()
+          .get(docId)
+          .then(_.partial(updateDoc, user, read))
+          .then(function(doc) {
+            if (!doc) {
+              return;
+            }
+            return DB().put(doc);
+          });
       };
     }
   ]);
-  
-  inboxServices.factory('MarkAllRead', ['db', 'UserCtxService',
-    function(db, UserCtxService) {
-      return function(messages, read, callback) {
-        var updated = _.filter(messages, function(message) {
-          return updateReadStatus(message, UserCtxService().name, read);
-        });
-        if (updated.length) {
-          db.bulkSave(updated, function(err) {
-            callback(err, updated);
-          });
-        }
+
+  inboxServices.factory('MarkAllRead', ['DB', 'Session',
+    function(DB, Session) {
+      return function(docs, read) {
+        var user = Session.userCtx().name;
+        var updated = updatDocs(user, read, docs);
+        // Conflicts will fail silently. That's ok.
+        return DB().bulkDocs(updated);
       };
     }
   ]);

@@ -1,16 +1,12 @@
-<div class="col-sm-12 analytics-widget total-births">
-  <div class="widget-body error" ng-show="totalBirths.error">
-    Could not retrieve data at this time.
-  </div>
-  <div class="widget-body" ng-hide="!totalBirths.loading">
-    <div class="loading">
-      <span class="fa fa-spinner fa-spin"></span>
-    </div>
+<div class="col-xs-12 analytics-widget count-only total-births">
+  <div class="widget-body error" ng-show="totalBirths.error" translate>analytics.connection.error</div>
+  <div class="widget-body loading" ng-hide="!totalBirths.loading">
+    <div class="loader"></div>
   </div>
   <div class="widget-body" ng-if="!totalBirths.loading && !totalBirths.error">
     <div class="title">
-      <p class="count">{~lb}{~lb}totalBirths.data.count || 0{~rb}{~rb}</p>
-      <p class="name">Total Births</p>
+      <p class="count">{{totalBirths.data.count || 0}}</p>
+      <p class="name" translate>analytics.anc.total-births</p>
     </div>
   </div>
 </div>

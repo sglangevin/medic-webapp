@@ -5,7 +5,10 @@
   angular.module('inboxFilters', ['ngSanitize']);
 
   require('./date');
+  require('./form-icon');
   require('./message');
-  require('./directives');
+  require('./phone');
+  require('./resource-icon');
+  require('./translate-from');
 
 }());

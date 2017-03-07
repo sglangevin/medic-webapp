@@ -4,12 +4,18 @@ ARGS='this.dependencies["kanso-gardener"] = null;'
 ARGS+='this.dependencies_included = true;'
 
 # Process append to the version string if pre-release
+<<<<<<< HEAD
 if [ "$TRAVIS_BRANCH" == "testing" ]; then
     ARGS+="this.version += \"-beta.$TRAVIS_BUILD_NUMBER\";"
 fi
 
 if [ "$TRAVIS_BRANCH" == "develop" ]; then
+=======
+if [ "$TRAVIS_BRANCH" == "master" ]; then
+>>>>>>> medic/master
     ARGS+="this.version += \"-alpha.$TRAVIS_BUILD_NUMBER\";"
+elif [[ "$TRAVIS_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-(rc|beta)\.[0-9]+$ ]]; then
+    ARGS+="this.version = \"$TRAVIS_TAG\";"
 fi
 
 if [ "$TRAVIS_BRANCH" == "rc" ]; then

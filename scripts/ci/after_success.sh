@@ -16,6 +16,18 @@ fi
 cd sentinel && npm install && cd .. && \
 cd api && npm install && cd ..
 
+function tagSubmodule {
+    cd $1
+    git tag $TRAVIS_TAG
+    git push --tags
+    cd ..
+}
+
+function tagSubmodules {
+    tagSubmodule 'api'
+    tagSubmodule 'sentinel'
+}
+
 # Try pushing up to $MAX times.
 function push {
     ((COUNT++))
@@ -30,20 +42,36 @@ function push {
     fi
 }
 
+# every master build gets pushed to alpha market
 if [ "$TRAVIS_BRANCH" == "master" ]; then
-    push 'release'
-fi;
+    push 'alpha'
 
+# match tags of the form "0.n.n"
+elif [[ "$TRAVIS_TAG" =~ ^0\.[0-9]+\.[0-9]+$ ]]; then
+    push 'release'
+    tagSubmodules
+
+# match tags of the form "2.n.n"
+elif [[ "$TRAVIS_TAG" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
+    push 'release-v2'
+    tagSubmodules
+
+<<<<<<< HEAD
 if [ "$TRAVIS_BRANCH" == "rc" ]; then
     push 'rc'
 fi;
 
 if [ "$TRAVIS_BRANCH" == "testing" ]; then
+=======
+# match tags of the form "n.n.n-beta.n"
+elif [[ "$TRAVIS_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+>>>>>>> medic/master
     push 'beta'
-fi;
 
-if [ "$TRAVIS_BRANCH" == "develop" ]; then
-    push 'alpha'
+# match tags of the form "n.n.n-rc.n"
+elif [[ "$TRAVIS_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]]; then
+    push 'rc'
+
 fi;
 
 exit 0;
